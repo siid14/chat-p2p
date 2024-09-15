@@ -14,9 +14,9 @@ MAIN_CLASS = chat
 all: $(MAIN)
 	$(JC) $(MAIN)
 
-# Run the program
+# Run the program with arguments
 run: all
-	$(JVM) $(MAIN_CLASS)
+	$(JVM) $(MAIN_CLASS) $(filter-out $@,$(MAKECMDGOALS))
 
 # Clean up compiled files
 clean:
@@ -24,3 +24,7 @@ clean:
 
 # Default target
 .PHONY: all run clean
+
+# Catch-all target to allow arguments
+%:
+	@:
