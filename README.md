@@ -20,7 +20,7 @@ Clean: `make clean`
 
 ***Requirements***  
 
-Java Development Kit (JDK)  
+- Java Development Kit (JDK)  
 
-javac and java in system PATH
+- javac and java in system PATH
 
