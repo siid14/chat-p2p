@@ -36,6 +36,12 @@ class PeerServer implements Runnable {
     public void run() {
         try (ServerSocket serverSocket = new ServerSocket(port)){
             System.out.println("Listening on port " + port);
+            while(true){
+            Socket clientSocket = serverSocket.accept();
+            System.out.println("New connection from " + clientSocket.getInetAddress());
+
+            new Thread(new ConnectionHandler(clientSocket)).start();
+            }
             } catch(IOException e) {
                 System.out.println("Server exception " + e.getMessage());
 
@@ -58,12 +64,23 @@ class PeerClient implements Runnable {
 
     @Override 
     public void run() {
-
+        try{ 
+            socket = new Socket(peerIP, peerPort);
+            System.out.println("Connected to peer at " + peerIP + ":" + peerPort);
+        } catch(IOException e){
+            System.out.println("Client exception " + e.getMessage());
+        }
     }
 }
 
 //* MANAGE INDIVIDUAL CONNECTION PEER CONNECTIONS - HANDLE SENDING AND RECEIVING MSG
 class ConnectionHandler implements Runnable {
+    private Socket socket;
+
+    public ConnectionHandler(Socket socket){
+        this.socket= socket;
+
+    }
 
     @Override 
     public void run() {
