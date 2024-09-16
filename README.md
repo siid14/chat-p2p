@@ -3,10 +3,12 @@
 
 ## Quickstart Guide
 
-***Navigate to the project directory:***
+***Navigate to the project directory:***  
+
 cd chat-p2p
 
-***Commands***
+***Commands***  
+
 Compile: `make all`  
 
 Run: `make run`  
@@ -16,7 +18,9 @@ Run with arguments: `make run arg1`
 Clean: `make clean`  
 
 
-***Requirements***
-Java Development Kit (JDK)
+***Requirements***  
+
+Java Development Kit (JDK)  
+
 javac and java in system PATH
 
