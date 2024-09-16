@@ -1,5 +1,10 @@
 import java.io.IOException;
 import java.net.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.Socket;
 
 
 public class chat {
@@ -60,21 +65,56 @@ class PeerClient implements Runnable {
     private Socket socket;
     private String peerIP;
     private int peerPort;
+    private BufferedReader input;
+    private PrintWriter output;
 
     public PeerClient(String peerIP, int peerPort){
-        peerIP = this.peerIP;
-        peerPort = this.peerPort;
+        this.peerIP = peerIP ;
+        this.peerPort = peerPort;
     }
 
     @Override 
     public void run() {
-        try{ 
+        connect(peerIP, peerPort);
+    }
+
+    // connect to a peer
+    private void connect(String destination, int port){
+        this.peerIP = destination;
+        this.peerPort = port;
+
+        try {
             // attempt to connect to the specified peer
             socket = new Socket(peerIP, peerPort);
-            System.out.println("Connected to peer at " + peerIP + ":" + peerPort);
-            // TODO: handle the established connection
-        } catch(IOException e){
-            System.out.println("Client exception " + e.getMessage());
+
+            // read and write to the socket
+            input = new BufferedReader(new InputStreamReader(socket.getInputStream())); 
+            output = new PrintWriter(socket.getOutputStream(), true);
+
+            System.out.println("Connected to peer at " + destination + ":" + port);
+            
+ 
+            // start a new thread to handle the connection
+            new Thread(() -> {
+                try {
+                    String inputLine;
+                    while ((inputLine = input.readLine()) != null) {
+                        System.out.println("Received message: " + inputLine + " from " + destination);
+                    }
+                } catch (IOException e) {
+                    System.out.println("Error reading from socket: " + e.getMessage());
+                }
+            }).start();
+        } catch (IOException e) {
+            System.out.println("Connection failed: " + e.getMessage());
+        }
+    }
+
+    // send a message to the connected peer
+    public void sendMessage(String message){
+        if(output != null){
+            output.println(message); // send the message
+            output.flush(); // sent the message immediately
         }
     }
 }
