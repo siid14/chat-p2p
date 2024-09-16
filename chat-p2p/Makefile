@@ -1,30 +1,30 @@
-# Java compiler
+# java compiler
 JC = javac
 
-# Java runtime
+# java runtime
 JVM = java
 
-# Source file
+# source file
 MAIN = chat.java
 
-# Class file
+# class file
 MAIN_CLASS = chat
 
-# Compile Java source file
+# compile Java source file
 all: $(MAIN)
 	$(JC) $(MAIN)
 
-# Run the program with arguments
+# run the program with arguments
 run: all
 	$(JVM) $(MAIN_CLASS) $(filter-out $@,$(MAKECMDGOALS))
 
-# Clean up compiled files
+# clean up compiled files
 clean:
 	$(RM) *.class
 
-# Default target
+# default target
 .PHONY: all run clean
 
-# Catch-all target to allow arguments
+# catch-all target to allow arguments
 %:
 	@:
