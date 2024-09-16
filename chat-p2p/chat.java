@@ -25,7 +25,7 @@ public class chat {
     }
 }
 
-// * PeerServe CLASS TO MANAGE INCOMING CONNECTIONS 
+// * PeerServer CLASS TO MANAGE INCOMING CONNECTIONS 
 class PeerServer implements Runnable {
     private int port;
 
