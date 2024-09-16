@@ -9,7 +9,7 @@ cd chat-p2p
 *Commands*
 Compile: `make all`
 Run: `make run`
-Run with arguments: `make run arg1 arg2`
+Run with arguments: `make run arg1`
 Clean: `make clean`
 
 *Requirements*
