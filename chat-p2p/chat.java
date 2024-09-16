@@ -4,7 +4,7 @@ import java.net.*;
 
 public class chat {
 
-    //* HANDLE INITIALIZATION - PARSE COMMAND LINE - START THREADS 
+    // * MAIN CLASS TO INIT AND START P2P CHAT 
     public static void main(String[] args) {
 
         // check if the port number has been included in command line
@@ -13,18 +13,19 @@ public class chat {
             return;
         }
 
-        int port = Integer.parseInt(args[0]); // convert arg to int (in case it's string)
+        int port = Integer.parseInt(args[0]);  // convert arg to int (in case it's string)
 
         PeerServer peerServer = new PeerServer(port);
         UserInterface ui = new UserInterface();
 
+        // start PeerServer and UserInterface in separate threads
         new Thread(peerServer).start();
         new Thread(ui).start();
         
     }
 }
 
-//* MANAGE INCOMING CONNECTIONS - LISTEN ON THE SPECIFIED PORT
+// * PeerServe CLASS TO MANAGE INCOMING CONNECTIONS 
 class PeerServer implements Runnable {
     private int port;
 
@@ -34,13 +35,16 @@ class PeerServer implements Runnable {
 
     @Override 
     public void run() {
+        // create a ServerSocket to listen for incoming connections
         try (ServerSocket serverSocket = new ServerSocket(port)){
             System.out.println("Listening on port " + port);
             while(true){
-            Socket clientSocket = serverSocket.accept();
-            System.out.println("New connection from " + clientSocket.getInetAddress());
+                // accept incoming connections
+                Socket clientSocket = serverSocket.accept();
+                System.out.println("New connection from " + clientSocket.getInetAddress());
 
-            new Thread(new ConnectionHandler(clientSocket)).start();
+                // start a new thread to handle connection
+                new Thread(new ConnectionHandler(clientSocket)).start();
             }
             } catch(IOException e) {
                 System.out.println("Server exception " + e.getMessage());
@@ -51,7 +55,7 @@ class PeerServer implements Runnable {
     }
 
 
-//* MANAGE OUTGOING CONNECTIONS - MANAGE THE 'CONNECT' COMMAND FUNCTIONALITY
+// * PeerClient CLASS TO MANAGE OUTGOING CONNECTION
 class PeerClient implements Runnable {
     private Socket socket;
     private String peerIP;
@@ -65,15 +69,17 @@ class PeerClient implements Runnable {
     @Override 
     public void run() {
         try{ 
+            // attempt to connect to the specified peer
             socket = new Socket(peerIP, peerPort);
             System.out.println("Connected to peer at " + peerIP + ":" + peerPort);
+            // TODO: handle the established connection
         } catch(IOException e){
             System.out.println("Client exception " + e.getMessage());
         }
     }
 }
 
-//* MANAGE INDIVIDUAL CONNECTION PEER CONNECTIONS - HANDLE SENDING AND RECEIVING MSG
+//* ConnectionHandler CLASS TO MANAGE INDIVIDUAL PEER CONNECTIONS
 class ConnectionHandler implements Runnable {
     private Socket socket;
 
@@ -84,15 +90,15 @@ class ConnectionHandler implements Runnable {
 
     @Override 
     public void run() {
-
+        // TODO: Implement logic for sending and receiving messages
     }
 }
 
-//* PROCESSES USER COMMANDS - DISPLAY INFORMATIONS TO USER
+//* UserInterface CLASS TO PROCESS USER COMMANDS AND DISPLAY INFORMATIONS
 class UserInterface implements Runnable {
 
     @Override 
     public void run() {
-
+        // TODO: Implement user interface logic
     }
 }
