@@ -7,10 +7,10 @@
 cd chat-p2p
 
 *Commands*
-Compile: make all
-Run: make run
-Run with arguments: make run arg1 arg2
-Clean: make clean
+Compile: `make all`
+Run: `make run`
+Run with arguments: `make run arg1 arg2`
+Clean: `make clean`
 
 *Requirements*
 Java Development Kit (JDK)
