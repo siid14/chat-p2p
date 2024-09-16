@@ -78,8 +78,11 @@ class PeerClient implements Runnable {
         connect(peerIP, peerPort);
     }
 
+    // TODO: add check for invalid IP + duplicate connections
+    // TODO: add check for connection to self
+    // TODO: add connection confirmation msg to both peers
     // connect to a peer
-    private void connect(String destination, int port){
+    public void connect(String destination, int port){
         this.peerIP = destination;
         this.peerPort = port;
 
