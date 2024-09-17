@@ -64,7 +64,7 @@ class PeerServer implements Runnable {
 
 // * PeerClient CLASS TO MANAGE OUTGOING CONNECTION
 class PeerClient implements Runnable {
-    private Socket socket;
+    private Socket newSocket;
     private String peerIP;
     private int peerPort;
     private BufferedReader input;
@@ -98,17 +98,31 @@ class PeerClient implements Runnable {
         if(isValidIP(peerIP)){
             System.out.println("Valid IP address: " + peerIP);
         }
+
+        // ! TO BE TESTED
+        // check if the connection already exists
+        if(activeConnections.containsKey(connectionKey)){
+            Socket existingSocket = activeConnections.get(connectionKey);
+            if(existingSocket != null && !existingSocket.isClosed()){
+                System.out.println("Connection to " + connectionKey + " already exists");
+                return;
+            } else {
+                activeConnections.remove(connectionKey);
+            }
+        }
      
 
         try {
             // attempt to connect to the specified peer
-            socket = new Socket(peerIP, peerPort);
+            newSocket = new Socket(peerIP, peerPort);
+            activeConnections.put(connectionKey, newSocket);
+            System.out.println("Connected to peer at " + connectionKey);
 
-            // read and write to the socket
-            input = new BufferedReader(new InputStreamReader(socket.getInputStream())); 
-            output = new PrintWriter(socket.getOutputStream(), true);
+            // read and write to the newSocket
+            input = new BufferedReader(new InputStreamReader(newSocket.getInputStream())); 
+            output = new PrintWriter(newSocket.getOutputStream(), true);
 
-            System.out.println("Connected to peer at " + destination + ":" + port);
+            
             
  
             // start a new thread to handle the connection
@@ -119,7 +133,7 @@ class PeerClient implements Runnable {
                         System.out.println("Received message: " + inputLine + " from " + destination);
                     }
                 } catch (IOException e) {
-                    System.out.println("Error reading from socket: " + e.getMessage());
+                    System.out.println("Error reading from newSocket: " + e.getMessage());
                 }
             }).start();
         } catch (IOException e) {
@@ -146,14 +160,27 @@ class PeerClient implements Runnable {
         }   
         return VALID_IP_PATTERN.matcher(peerIP).matches();
     }
+
+    public void closeConnection(String peerIP, int peerPort) {
+        String connectionKey = peerIP + ":" + peerPort;
+        Socket newSocket = activeConnections.remove(connectionKey);
+        if (newSocket != null) {
+            try {
+                newSocket.close();
+                System.out.println("Closed connection to " + connectionKey);
+            } catch (IOException e) {
+                System.out.println("Error closing connection: " + e.getMessage());
+            }
+        }
+    }
 }
 
 //* ConnectionHandler CLASS TO MANAGE INDIVIDUAL PEER CONNECTIONS
 class ConnectionHandler implements Runnable {
-    private Socket socket;
+    private Socket newSocket;
 
-    public ConnectionHandler(Socket socket){
-        this.socket= socket;
+    public ConnectionHandler(Socket newSocket){
+        this.newSocket= newSocket;
 
     }
 
