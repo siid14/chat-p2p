@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.regex.Pattern;
 
 
 public class chat {
@@ -67,10 +68,22 @@ class PeerClient implements Runnable {
     private int peerPort;
     private BufferedReader input;
     private PrintWriter output;
+    private static final String VALID_IP_REGEX = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$";
+    private static final Pattern VALID_IP_PATTERN = Pattern.compile(VALID_IP_REGEX);
 
     public PeerClient(String peerIP, int peerPort){
         this.peerIP = peerIP ;
         this.peerPort = peerPort;
+    }
+
+    // ! TO BE TESTED
+    // check if the IP address is valid
+    public static boolean isValidIP(String peerIP){
+        if (peerIP == null || peerIP.isEmpty()){
+            System.out.println("IP address is empty or null");
+            return false;
+        }   
+        return VALID_IP_PATTERN.matcher(peerIP).matches();
     }
 
     @Override 
@@ -85,6 +98,8 @@ class PeerClient implements Runnable {
     public void connect(String destination, int port){
         this.peerIP = destination;
         this.peerPort = port;
+
+      
 
         try {
             // attempt to connect to the specified peer
