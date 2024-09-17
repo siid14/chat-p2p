@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.regex.Pattern;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 public class chat {
@@ -70,21 +71,14 @@ class PeerClient implements Runnable {
     private PrintWriter output;
     private static final String VALID_IP_REGEX = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$";
     private static final Pattern VALID_IP_PATTERN = Pattern.compile(VALID_IP_REGEX);
+    private static final ConcurrentHashMap<String, Socket> activeConnections = new ConcurrentHashMap<>();
 
     public PeerClient(String peerIP, int peerPort){
         this.peerIP = peerIP ;
         this.peerPort = peerPort;
     }
 
-    // ! TO BE TESTED
-    // check if the IP address is valid
-    public static boolean isValidIP(String peerIP){
-        if (peerIP == null || peerIP.isEmpty()){
-            System.out.println("IP address is empty or null");
-            return false;
-        }   
-        return VALID_IP_PATTERN.matcher(peerIP).matches();
-    }
+    
 
     @Override 
     public void run() {
@@ -98,8 +92,13 @@ class PeerClient implements Runnable {
     public void connect(String destination, int port){
         this.peerIP = destination;
         this.peerPort = port;
+        String connectionKey = peerIP + ":" + peerPort;
 
-      
+        //  check is the IP address is valid
+        if(isValidIP(peerIP)){
+            System.out.println("Valid IP address: " + peerIP);
+        }
+     
 
         try {
             // attempt to connect to the specified peer
@@ -128,12 +127,24 @@ class PeerClient implements Runnable {
         }
     }
 
+    // * METHODS
     // send a message to the connected peer
     public void sendMessage(String message){
         if(output != null){
             output.println(message); // send the message
             output.flush(); // sent the message immediately
         }
+    }
+
+    // ! TO BE TESTED
+    // check if the IP address is valid
+    public static boolean isValidIP(String peerIP){
+        System.out.println("Checking IP address: " + peerIP);
+        if (peerIP == null || peerIP.isEmpty()){
+            System.out.println("IP address is empty or null");
+            return false;
+        }   
+        return VALID_IP_PATTERN.matcher(peerIP).matches();
     }
 }
 
