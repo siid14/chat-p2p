@@ -429,7 +429,7 @@ class ConnectionHandler implements Runnable {
             throw new IOException("Output stream is null");
         }
     }
-
+// test
     private ConnectionMessage receiveConnectionMessage() throws IOException {
         if (input != null) {
             try {
@@ -461,3 +461,4 @@ class UserInterface implements Runnable {
         // TODO: Implement user interface logic
     }
 }
+
