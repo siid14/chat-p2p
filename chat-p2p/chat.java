@@ -331,7 +331,127 @@ class ConnectionHandler implements Runnable {
 
     @Override 
     public void run() {
+        System.out.println("Starting connection handler for peer: " + peerIP + ":" + peerPort);
+        try{
+            setupStreams(); // set up input and output streams
+            performHandshake(); // perform the connection handshake
+            handleMessages(); // handle incoming messages
+        } catch (IOException e){
+            System.err.println("IO Error in connection handler for " + peerIP + ":" + peerPort + ": " + e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e){
+            System.err.println("Unexpected error in connection handler for " + peerIP + ":" + peerPort + ": " + e.getMessage());
+        e.printStackTrace();
+        } finally {
+            // ensure the connection is closed when done
+            System.out.println("Closing connection with peer: " + peerIP + ":" + peerPort);
+            closeConnection();
+        }
+
         
+    }
+
+    // * METHODS
+    private void setupStreams() throws IOException {
+         // read and write to the newSocket
+         input = new BufferedReader(new InputStreamReader(newSocket.getInputStream())); 
+         output = new PrintWriter(newSocket.getOutputStream(), true);
+    }
+
+    // perform the connection handshake
+    private void performHandshake () throws IOException {
+        System.out.println("Starting handshake process with peer: " + peerIP + ":" + peerPort);
+        state = ConnectionState.CONNECTING;
+
+        // ? (optional) Implement timeout mechanism for handshake (for socket)
+    
+
+        // ? (optional) Implement retry mechanism for failed handshakes
+      
+        // receive the initial connection message from the peer
+        ConnectionMessage response = receiveConnectionMessage();
+        System.out.println("Received initial message from peer: " + response);
+        
+        if(response == ConnectionMessage.CONNECT_REQUEST){
+            System.out.println("Received CONNECT_REQUEST from peer: " + peerIP + ":" + peerPort);
+            sendConnectionMessage(ConnectionMessage.CONNECT_ACK);
+            System.out.println("Sent CONNECT_ACK to peer: " + peerIP + ":" + peerPort);
+
+            // wait for confirmation from peer
+            ConnectionMessage confirm = receiveConnectionMessage();
+            System.out.println("Received " + confirm + " from peer: " + peerIP + ":" + peerPort);
+
+            if (confirm == ConnectionMessage.CONNECT_CONFIRM) {
+                state = ConnectionState.CONNECTED;
+                System.out.println("Handshake completed. Connection established with " + peerIP + ":" + peerPort);
+            } else {
+                System.err.println("Handshake failed. Unexpected confirmation message: " + confirm);
+                throw new IOException("Unexpected confirmation message during handshake: " + confirm);
+            }
+            } else {
+                System.err.println("Handshake failed. Unexpected initial message: " + response);
+                throw new IOException("Unexpected initial message during handshake: " + response);
+            }
+    }
+
+    // handle incoming messages after connection is established
+    private void handleMessages() {
+        try {
+            String inputLine;
+            while (state == ConnectionState.CONNECTED && (inputLine = input.readLine()) != null){
+                System.out.println("Received from " + peerIP + ":" + peerPort + " - " + inputLine);
+            }
+        } catch (IOException e) {
+            state = ConnectionState.DISCONNECTED;
+            System.err.println("Error reading from peer " + peerIP + ":" + peerPort + " - " + e.getMessage());
+        }
+    }
+
+    // close all resources associated with this connection
+    private void closeConnection(){
+        try {
+            if(input != null) input.close();
+            if(output != null) output.close();
+            if(newSocket != null) newSocket.close();
+        } catch (IOException e) {
+            System.out.println("Error closing connection: " + e.getMessage());
+            state = ConnectionState.DISCONNECTED;
+        }
+    }
+
+    // send a connection message to the peer
+    private void sendConnectionMessage(ConnectionMessage message) throws IOException {
+        if (output != null) {
+            output.println(message);
+            output.flush();
+            System.out.println("Sent ConnectionMessage: " + message + " to " + peerIP + ":" + peerPort);
+        } else {
+            System.err.println("Failed to send ConnectionMessage: output stream is null");
+            throw new IOException("Output stream is null");
+        }
+    }
+
+    private ConnectionMessage receiveConnectionMessage() throws IOException {
+        if (input != null) {
+            try {
+                String inputLine = input.readLine();
+                if (inputLine == null) {
+                    System.err.println("Connection closed by peer while waiting for ConnectionMessage");
+                    throw new IOException("Connection closed by peer");
+                }
+                ConnectionMessage message = ConnectionMessage.valueOf(inputLine);
+                System.out.println("Received ConnectionMessage: " + message + " from " + peerIP + ":" + peerPort);
+                return message;
+            } catch (IllegalArgumentException e) {
+                System.err.println("Received invalid ConnectionMessage: " + e.getMessage());
+                throw new IOException("Invalid connection message received: " + e.getMessage());
+            } catch (IOException e) {
+                System.err.println("Error reading ConnectionMessage from input stream: " + e.getMessage());
+                throw new IOException("Error reading from input stream: " + e.getMessage());
+            }
+        }
+        System.err.println("Failed to receive ConnectionMessage: input stream is null");
+        throw new IOException("Input stream is null");
     }
 }
 
@@ -372,7 +492,7 @@ class UserInterface implements Runnable {
        
     }
     private void displayHelp(){
-        System.out.println("Information about builtin commands: \n\n");
+        System.out.println("Information about built in commands: \n\n");
         System.out.println("\t/help: Displays information about the available user interface options or manual.\n");
         System.out.println("\t/myip: Display the IP address of this process.\n");
         System.out.println("\t/myport: Display the port on which this process is listening for incoming connections.\n");
@@ -391,3 +511,4 @@ class UserInterface implements Runnable {
    
     
 }
+
