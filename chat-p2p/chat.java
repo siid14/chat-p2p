@@ -332,9 +332,9 @@ class ConnectionHandler implements Runnable {
     public void run() {
         System.out.println("Starting connection handler for peer: " + peerIP + ":" + peerPort);
         try{
-            setupStreams();
-            performHandshake();
-            handleMessages();
+            setupStreams(); // set up input and output streams
+            performHandshake(); // perform the connection handshake
+            handleMessages(); // handle incoming messages
         } catch (IOException e){
             System.err.println("IO Error in connection handler for " + peerIP + ":" + peerPort + ": " + e.getMessage());
             e.printStackTrace();
@@ -342,6 +342,7 @@ class ConnectionHandler implements Runnable {
             System.err.println("Unexpected error in connection handler for " + peerIP + ":" + peerPort + ": " + e.getMessage());
         e.printStackTrace();
         } finally {
+            // ensure the connection is closed when done
             System.out.println("Closing connection with peer: " + peerIP + ":" + peerPort);
             closeConnection();
         }
@@ -349,12 +350,14 @@ class ConnectionHandler implements Runnable {
         
     }
 
+    // * METHODS
     private void setupStreams() throws IOException {
          // read and write to the newSocket
          input = new BufferedReader(new InputStreamReader(newSocket.getInputStream())); 
          output = new PrintWriter(newSocket.getOutputStream(), true);
     }
 
+    // perform the connection handshake
     private void performHandshake () throws IOException {
         System.out.println("Starting handshake process with peer: " + peerIP + ":" + peerPort);
         state = ConnectionState.CONNECTING;
@@ -364,7 +367,7 @@ class ConnectionHandler implements Runnable {
 
         // ? (optional) Implement retry mechanism for failed handshakes
       
-        
+        // receive the initial connection message from the peer
         ConnectionMessage response = receiveConnectionMessage();
         System.out.println("Received initial message from peer: " + response);
         
@@ -373,6 +376,7 @@ class ConnectionHandler implements Runnable {
             sendConnectionMessage(ConnectionMessage.CONNECT_ACK);
             System.out.println("Sent CONNECT_ACK to peer: " + peerIP + ":" + peerPort);
 
+            // wait for confirmation from peer
             ConnectionMessage confirm = receiveConnectionMessage();
             System.out.println("Received " + confirm + " from peer: " + peerIP + ":" + peerPort);
 
@@ -389,6 +393,7 @@ class ConnectionHandler implements Runnable {
             }
     }
 
+    // handle incoming messages after connection is established
     private void handleMessages() {
         try {
             String inputLine;
@@ -401,6 +406,7 @@ class ConnectionHandler implements Runnable {
         }
     }
 
+    // close all resources associated with this connection
     private void closeConnection(){
         try {
             if(input != null) input.close();
@@ -412,6 +418,7 @@ class ConnectionHandler implements Runnable {
         }
     }
 
+    // send a connection message to the peer
     private void sendConnectionMessage(ConnectionMessage message) throws IOException {
         if (output != null) {
             output.println(message);
