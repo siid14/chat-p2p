@@ -203,17 +203,24 @@ class PeerClient implements Runnable {
         input = new BufferedReader(new InputStreamReader(newSocket.getInputStream())); 
         output = new PrintWriter(newSocket.getOutputStream(), true);
 
+        System.out.println("Initiating handshake with peer: " + peerIP + ":" + peerPort);
         state = ConnectionState.CONNECTING;
         sendConnectionMessage(ConnectionMessage.CONNECT_REQUEST);
+        System.out.println("Sent CONNECT_REQUEST to peer: " + peerIP + ":" + peerPort);
 
         ConnectionMessage response = receiveConnectionMessage();
+        System.out.println("Received response from peer: " + response);
+
         if(response == ConnectionMessage.CONNECT_ACK){
+            System.out.println("Received CONNECT_ACK from peer: " + peerIP + ":" + peerPort);
             sendConnectionMessage(ConnectionMessage.CONNECT_CONFIRM);
+            System.out.println("Sent CONNECT_CONFIRM to peer: " + peerIP + ":" + peerPort);
             state = ConnectionState.CONNECTED;
             System.out.println("Connection established with " + peerIP + ":" + peerPort);
         } else {
             state = ConnectionState.DISCONNECTED;
-            throw new IOException("Unexpected response during handshake");
+            System.err.println("Handshake failed. Unexpected response during handshake: " + response);
+            throw new IOException("Unexpected response during handshake: " + response);
         }
         // start a new thread to handle the connection
         new Thread(() -> {
@@ -349,21 +356,31 @@ class ConnectionHandler implements Runnable {
     }
 
     private void performHandshake () throws IOException {
+        System.out.println("Starting handshake process with peer: " + peerIP + ":" + peerPort);
         state = ConnectionState.CONNECTING;
         
         ConnectionMessage response = receiveConnectionMessage();
+        System.out.println("Received initial message from peer: " + response);
+        
         if(response == ConnectionMessage.CONNECT_REQUEST){
+            System.out.println("Received CONNECT_REQUEST from peer: " + peerIP + ":" + peerPort);
             sendConnectionMessage(ConnectionMessage.CONNECT_ACK);
+            System.out.println("Sent CONNECT_ACK to peer: " + peerIP + ":" + peerPort);
+
             ConnectionMessage confirm = receiveConnectionMessage();
-        if (confirm == ConnectionMessage.CONNECT_CONFIRM) {
-            state = ConnectionState.CONNECTED;
-            System.out.println("Connection established with " + peerIP + ":" + peerPort);
-        } else {
-            throw new IOException("Unexpected confirmation message during handshake");
-        }
-        } else {
-            throw new IOException("Unexpected initial message during handshake");
-        }
+            System.out.println("Received confirmation from peer: " + confirm);
+
+            if (confirm == ConnectionMessage.CONNECT_CONFIRM) {
+                state = ConnectionState.CONNECTED;
+                System.out.println("Handshake completed. Connection established with " + peerIP + ":" + peerPort);
+            } else {
+                System.err.println("Handshake failed. Unexpected confirmation message: " + confirm);
+                throw new IOException("Unexpected confirmation message during handshake: " + confirm);
+            }
+            } else {
+                System.err.println("Handshake failed. Unexpected initial message: " + response);
+                throw new IOException("Unexpected initial message during handshake: " + response);
+            }
     }
 
     private void handleMessages() {
@@ -393,8 +410,9 @@ class ConnectionHandler implements Runnable {
         if (output != null) {
             output.println(message);
             output.flush();
-            System.out.println("ConnectionMessage sent: " + message);
+            System.out.println("Sent ConnectionMessage: " + message + " to " + peerIP + ":" + peerPort);
         } else {
+            System.err.println("Failed to send ConnectionMessage: output stream is null");
             throw new IOException("Output stream is null");
         }
     }
@@ -404,18 +422,21 @@ class ConnectionHandler implements Runnable {
             try {
                 String inputLine = input.readLine();
                 if (inputLine == null) {
+                    System.err.println("Connection closed by peer while waiting for ConnectionMessage");
                     throw new IOException("Connection closed by peer");
                 }
                 ConnectionMessage message = ConnectionMessage.valueOf(inputLine);
-                System.out.println("Received ConnectionMessage: " + message);
+                System.out.println("Received ConnectionMessage: " + message + " from " + peerIP + ":" + peerPort);
                 return message;
             } catch (IllegalArgumentException e) {
-                String inputLine = e.getMessage();
-                throw new IOException("Invalid connection message received: " + inputLine);
+                System.err.println("Received invalid ConnectionMessage: " + e.getMessage());
+                throw new IOException("Invalid connection message received: " + e.getMessage());
             } catch (IOException e) {
+                System.err.println("Error reading ConnectionMessage from input stream: " + e.getMessage());
                 throw new IOException("Error reading from input stream: " + e.getMessage());
             }
         }
+        System.err.println("Failed to receive ConnectionMessage: input stream is null");
         throw new IOException("Input stream is null");
     }
 }
