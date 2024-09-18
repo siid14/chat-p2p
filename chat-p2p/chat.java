@@ -39,13 +39,7 @@ enum ConnectionMessage {
 // * PeerServer CLASS TO MANAGE INCOMING CONNECTIONS 
 class PeerServer implements Runnable {
     private int port;
-    private BufferedReader input;
-    private PrintWriter output;
-    private String peerIP;
-    private int peerPort;
-   
-   
-
+    
 
     public PeerServer (int port){
         this.port = port;
@@ -69,9 +63,6 @@ class PeerServer implements Runnable {
         }
     }
 
-   
-
-    
 }
 
 // * PeerClient CLASS TO MANAGE OUTGOING CONNECTION
@@ -102,7 +93,7 @@ class PeerClient implements Runnable {
 
      ConnectionState state = ConnectionState.DISCONNECTED;
 
-    // ! TO BE TESTED
+    
     public List<String> getMyIPs() {
         System.out.println("Starting gathering IP addresses");
         try{
@@ -130,7 +121,7 @@ class PeerClient implements Runnable {
         }
     }
 
-    // ! TO BE TESTED
+
     public boolean isConnectionToSelf(String peerIP, int peerPort){
         if(myPort == peerPort && myIPs.contains(peerIP)){
             System.out.println("Attempting to connect to self (same IP and port). Connection aborted.");
@@ -162,21 +153,20 @@ class PeerClient implements Runnable {
         this.myPort = myPort;
         String connectionKey = peerIP + ":" + peerPort;
 
-        // ! TO BE TESTED
+        
         //  check is the IP address is valid
         if(!isValidIP(peerIP)){
             System.out.println("Not Valid IP address: " + peerIP);
             return;
         }
 
-        // ! TO BE TESTED
+ 
         // check if the connection is to self
         if(isConnectionToSelf(peerIP, peerPort)){
             System.out.println("Connection to self detected. Aborting connection.");
             return;
         }
     
-        // ! TO BE TESTED
         // check if the connection already exists
         if(activeConnections.containsKey(connectionKey)){
             Socket existingSocket = activeConnections.get(connectionKey);
@@ -205,6 +195,12 @@ class PeerClient implements Runnable {
 
         System.out.println("Initiating handshake with peer: " + peerIP + ":" + peerPort);
         state = ConnectionState.CONNECTING;
+
+        // ? (Optional): Implement timeout mechanism for handshake
+    
+
+        // ? (Optional): Implement retry mechanism for failed handshakes
+    
         sendConnectionMessage(ConnectionMessage.CONNECT_REQUEST);
         System.out.println("Sent CONNECT_REQUEST to peer: " + peerIP + ":" + peerPort);
 
@@ -249,7 +245,7 @@ class PeerClient implements Runnable {
         }
     }
 
-    // ! TO BE TESTED
+  
     // check if the IP address is valid
     public static boolean isValidIP(String peerIP){
         System.out.println("Checking IP address: " + peerIP);
@@ -260,6 +256,7 @@ class PeerClient implements Runnable {
         return VALID_IP_PATTERN.matcher(peerIP).matches();
     }
 
+  
     // close the connection to the specified peer
     public void closeConnection(String peerIP, int peerPort) {
         String connectionKey = peerIP + ":" + peerPort;
@@ -274,6 +271,7 @@ class PeerClient implements Runnable {
         }
     }
 
+    
     public void sendConnectionMessage(ConnectionMessage message){
         if(output != null){ // check if the output stream is open
             output.println(message); // send the message
@@ -282,6 +280,7 @@ class PeerClient implements Runnable {
         }
     }
 
+    
     public ConnectionMessage receiveConnectionMessage() throws IOException {
         if (input != null) {
             try {
@@ -358,6 +357,12 @@ class ConnectionHandler implements Runnable {
     private void performHandshake () throws IOException {
         System.out.println("Starting handshake process with peer: " + peerIP + ":" + peerPort);
         state = ConnectionState.CONNECTING;
+
+        // ? (optional) Implement timeout mechanism for handshake (for socket)
+    
+
+        // ? (optional) Implement retry mechanism for failed handshakes
+      
         
         ConnectionMessage response = receiveConnectionMessage();
         System.out.println("Received initial message from peer: " + response);
