@@ -1,5 +1,3 @@
-import java.io.IOException;
-import java.net.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -9,7 +7,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-
 
 public class chat {
 
@@ -258,9 +255,44 @@ class ConnectionHandler implements Runnable {
 
 //* UserInterface CLASS TO PROCESS USER COMMANDS AND DISPLAY INFORMATIONS
 class UserInterface implements Runnable {
+    private Scanner scanner;
+
+    public UserInterface() {
+        scanner = new Scanner(System.in);
+    }
 
     @Override 
     public void run() {
         // TODO: Implement user interface logic
+        System.out.println("Type /help for a list of available commands.");
+
+        while(true){
+            System.out.print(">> ");
+            String input = scanner.nextLine();
+
+            switch(input){
+                case "/help":
+                    displayHelp();
+                    break;
+            }
+
+            
+        }
+
+       
     }
+    private void displayHelp(){
+        System.out.println("Information about builtin commands: \n\n");
+        System.out.println("\t/help: Displays information about the available user interface options or manual.\n");
+        System.out.println("\t/myip: Display the IP address of this process.\n");
+        System.out.println("\t/myport: Display the port on which this process is listening for incoming connections.\n");
+        System.out.println("\t/connect <destination> <port no>: This command establishes a new TCP connection to the specified <destination> at the specified <port_no>. The <destination> is the IP address of the computer.\n");
+        System.out.println("\t/list: Display a numbered list of all the connections this process is apart of.\n");
+        System.out.println("\t/terminate <connection_id>: This command will terminate the connection listed under the specified number when LIST is used to display all connections.\n");
+        System.out.println("\t/send <connection_id> <message>: This will send the message to the host on the connection that is designated. The message to be sent can be up-to 100 characters long, including blank spaces.\n");
+        System.out.println("\t/exit: Close all connections and terminate this process.\n");
+    }
+
+   
+    
 }
