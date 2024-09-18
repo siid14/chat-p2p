@@ -84,34 +84,36 @@ class PeerClient implements Runnable {
         this.myIPs = getMyIPs();
     }
 
-public List<String> getMyIPs()
-{
-    System.out.println("Starting gathering IP addresses");
-    try{
-        List<String> ipAdresses = NetworkInterface.networkInterfaces()
-        .peek(iface -> System.out.println("\nExamining Interface... " + iface.getName()))
-        .filter (iface -> {
-            try {
-                return !iface.isLoopback() && iface.isUp();
-            } catch (SocketException e){
-                System.out.println("Error checking interface: " + iface.getName() + " : " + e.getMessage());
-                return false;
-            }
-        })
-        .flatMap(iface -> iface.inetAddresses())
-        .peek(addr -> System.out.println("Found IP address: "  + addr.getHostAddress()))
-        .map(addr -> addr.getHostAddress())
-        .collect(Collectors.toList());
+    // ! TO BE TESTED
+    public List<String> getMyIPs()
+    {
+        System.out.println("Starting gathering IP addresses");
+        try{
+            List<String> ipAdresses = NetworkInterface.networkInterfaces()
+            .peek(iface -> System.out.println("\nExamining Interface... " + iface.getName()))
+            .filter (iface -> {
+                try {
+                    return !iface.isLoopback() && iface.isUp();
+                } catch (SocketException e){
+                    System.out.println("Error checking interface: " + iface.getName() + " : " + e.getMessage());
+                    return false;
+                }
+            })
+            .flatMap(iface -> iface.inetAddresses())
+            .peek(addr -> System.out.println("Found IP address: "  + addr.getHostAddress()))
+            .map(addr -> addr.getHostAddress())
+            .collect(Collectors.toList());
 
-        System.out.println("\nFinished gathering IP addresses. Total found: " + ipAdresses.size());
-        return ipAdresses;
-    }  
-    catch (SocketException e){
-        System.out.println("Error getting network interfaces: " + e.getMessage());
-        return List.of(); // return an empty list in case of error
+            System.out.println("\nFinished gathering IP addresses. Total found: " + ipAdresses.size());
+            return ipAdresses;
+        }  
+        catch (SocketException e){
+            System.out.println("Error getting network interfaces: " + e.getMessage());
+            return List.of(); // return an empty list in case of error
+        }
     }
-}
 
+    // ! TO BE TESTED
     public boolean isConnectionToSelf(String peerIP, int peerPort){
         if(myPort == peerPort && myIPs.contains(peerIP)){
             System.out.println("Attempting to connect to self (same IP and port). Connection aborted.");
@@ -125,13 +127,12 @@ public List<String> getMyIPs()
         return false;
     }
     
-
     @Override 
     public void run() {
         connect(peerIP, peerPort, myPort);
     }
 
-    // TODO: add connection confirmation msg to both peers
+    // TODO: add connection confirmation (success/failure) msg to both peers
     // connect to a peer
     public void connect(String peerIP, int peerPort, int myPort){
         this.peerIP = peerIP;
@@ -139,12 +140,14 @@ public List<String> getMyIPs()
         this.myPort = myPort;
         String connectionKey = peerIP + ":" + peerPort;
 
+        // ! TO BE TESTED
         //  check is the IP address is valid
         if(!isValidIP(peerIP)){
             System.out.println("Not Valid IP address: " + peerIP);
             return;
         }
 
+        // ! TO BE TESTED
         // check if the connection is to self
         if(isConnectionToSelf(peerIP, peerPort)){
             System.out.println("Connection to self detected. Aborting connection.");
