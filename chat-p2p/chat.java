@@ -6,6 +6,8 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 
@@ -66,6 +68,7 @@ class PeerServer implements Runnable {
 class PeerClient implements Runnable {
     private Socket newSocket;
     private String peerIP;
+    private int myPort;
     private int peerPort;
     private BufferedReader input;
     private PrintWriter output;
@@ -73,31 +76,66 @@ class PeerClient implements Runnable {
     private static final Pattern VALID_IP_PATTERN = Pattern.compile(VALID_IP_REGEX);
     private static final ConcurrentHashMap<String, Socket> activeConnections = new ConcurrentHashMap<>();
 
-    public PeerClient(String peerIP, int peerPort){
+    public PeerClient(String peerIP, int peerPort, int myPort){
         this.peerIP = peerIP ;
         this.peerPort = peerPort;
+        this.myPort = myPort;
+        
     }
 
+public List<String> getMyIPs()
+{
+    System.out.println("Starting gathering IP addresses");
+    try{
+        List<String> ipAdresses = NetworkInterface.networkInterfaces()
+        .peek(iface -> System.out.println("\nExamining Interface... " + iface.getName()))
+        .filter (iface -> {
+            try {
+                return !iface.isLoopback() && iface.isUp();
+            } catch (SocketException e){
+                System.out.println("Error checking interface: " + iface.getName() + " : " + e.getMessage());
+                return false;
+            }
+        })
+        .flatMap(iface -> iface.inetAddresses())
+        .peek(addr -> System.out.println("Found IP address: "  + addr.getHostAddress()))
+        .map(addr -> addr.getHostAddress())
+        .collect(Collectors.toList());
+
+        System.out.println("\nFinished gathering IP addresses. Total found: " + ipAdresses.size());
+        return ipAdresses;
+    }  
+    catch (SocketException e){
+        System.out.println("Error getting network interfaces: " + e.getMessage());
+        return List.of(); // return an empty list in case of error
+    }
+}
     
 
     @Override 
     public void run() {
-        connect(peerIP, peerPort);
+        connect(peerIP, peerPort, myPort);
     }
 
-    // TODO: add check for invalid IP + duplicate connections
     // TODO: add check for connection to self
     // TODO: add connection confirmation msg to both peers
     // connect to a peer
-    public void connect(String destination, int port){
-        this.peerIP = destination;
-        this.peerPort = port;
+    public void connect(String peerIP, int peerPort, int myPort){
+        this.peerIP = peerIP;
+        this.peerPort = peerPort;
+        this.myPort = myPort;
         String connectionKey = peerIP + ":" + peerPort;
 
         //  check is the IP address is valid
         if(isValidIP(peerIP)){
             System.out.println("Valid IP address: " + peerIP);
         }
+
+        if(myPort == peerPort){
+            System.out.println("Port number is the same as peer port number");
+            return;
+        }
+        
 
         // ! TO BE TESTED
         // check if the connection already exists
@@ -111,7 +149,7 @@ class PeerClient implements Runnable {
             }
         }
      
-
+        // * ESTABLISH A CONNECTION TO A PEER 
         try {
             // attempt to connect to the specified peer
             newSocket = new Socket(peerIP, peerPort);
@@ -130,7 +168,7 @@ class PeerClient implements Runnable {
                 try {
                     String inputLine;
                     while ((inputLine = input.readLine()) != null) {
-                        System.out.println("Received message: " + inputLine + " from " + destination);
+                        System.out.println("Received message: " + inputLine + " from " + peerIP);
                     }
                 } catch (IOException e) {
                     System.out.println("Error reading from newSocket: " + e.getMessage());
@@ -161,6 +199,7 @@ class PeerClient implements Runnable {
         return VALID_IP_PATTERN.matcher(peerIP).matches();
     }
 
+    // close the connection to the specified peer
     public void closeConnection(String peerIP, int peerPort) {
         String connectionKey = peerIP + ":" + peerPort;
         Socket newSocket = activeConnections.remove(connectionKey);
