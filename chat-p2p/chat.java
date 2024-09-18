@@ -89,7 +89,9 @@ public List<String> getMyIPs()
     System.out.println("Starting gathering IP addresses");
     try{
         List<String> ipAdresses = NetworkInterface.networkInterfaces()
+        // stream through all network interfaces
         .peek(iface -> System.out.println("\nExamining Interface... " + iface.getName()))
+        // filter out loopback interfaces and interfaces that are down
         .filter (iface -> {
             try {
                 return !iface.isLoopback() && iface.isUp();
@@ -98,9 +100,13 @@ public List<String> getMyIPs()
                 return false;
             }
         })
+         // get all IP addresses associated with each interface
         .flatMap(iface -> iface.inetAddresses())
+        // log each IP address found
         .peek(addr -> System.out.println("Found IP address: "  + addr.getHostAddress()))
+        // convert InetAddress objects to string representations
         .map(addr -> addr.getHostAddress())
+         // collect all IP addresses into a list
         .collect(Collectors.toList());
 
         System.out.println("\nFinished gathering IP addresses. Total found: " + ipAdresses.size());
@@ -112,18 +118,7 @@ public List<String> getMyIPs()
     }
 }
 
-    public boolean isConnectionToSelf(String peerIP, int peerPort){
-        if(myPort == peerPort && myIPs.contains(peerIP)){
-            System.out.println("Attempting to connect to self (same IP and port). Connection aborted.");
-            return true;
-        }
-
-        if (myIPs.contains(peerIP)) {
-            System.out.println("Note: Connecting to own IP address but different port.");
-        }
-
-        return false;
-    }
+    
     
 
     @Override 
@@ -227,6 +222,22 @@ public List<String> getMyIPs()
                 System.out.println("Error closing connection: " + e.getMessage());
             }
         }
+    }
+
+    // check if the connection attempt is to the same machine
+    public boolean isConnectionToSelf(String peerIP, int peerPort){
+        // check if the peer IP and port match any of our own IPs and the listening port
+        if(myPort == peerPort && myIPs.contains(peerIP)){
+            System.out.println("Attempting to connect to self (same IP and port). Connection aborted.");
+            return true;
+        }
+
+        // warn if connecting to own IP but different port
+        if (myIPs.contains(peerIP)) {
+            System.out.println("Note: Connecting to own IP address but different port.");
+        }
+
+        return false;
     }
 }
 
