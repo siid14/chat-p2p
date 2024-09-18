@@ -70,6 +70,7 @@ class PeerClient implements Runnable {
     private String peerIP;
     private int myPort;
     private int peerPort;
+    private List<String> myIPs;
     private BufferedReader input;
     private PrintWriter output;
     private static final String VALID_IP_REGEX = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$";
@@ -80,7 +81,7 @@ class PeerClient implements Runnable {
         this.peerIP = peerIP ;
         this.peerPort = peerPort;
         this.myPort = myPort;
-        
+        this.myIPs = getMyIPs();
     }
 
 public List<String> getMyIPs()
@@ -110,6 +111,19 @@ public List<String> getMyIPs()
         return List.of(); // return an empty list in case of error
     }
 }
+
+    public boolean isConnectionToSelf(String peerIP, int peerPort){
+        if(myPort == peerPort && myIPs.contains(peerIP)){
+            System.out.println("Attempting to connect to self (same IP and port). Connection aborted.");
+            return true;
+        }
+
+        if (myIPs.contains(peerIP)) {
+            System.out.println("Note: Connecting to own IP address but different port.");
+        }
+
+        return false;
+    }
     
 
     @Override 
@@ -127,14 +141,17 @@ public List<String> getMyIPs()
         String connectionKey = peerIP + ":" + peerPort;
 
         //  check is the IP address is valid
-        if(isValidIP(peerIP)){
-            System.out.println("Valid IP address: " + peerIP);
-        }
-
-        if(myPort == peerPort){
-            System.out.println("Port number is the same as peer port number");
+        if(!isValidIP(peerIP)){
+            System.out.println("Not Valid IP address: " + peerIP);
             return;
         }
+
+        // check if the connection is to self
+        if(isConnectionToSelf(peerIP, peerPort)){
+            System.out.println("Connection to self detected. Aborting connection.");
+            return;
+        }
+       
         
 
         // ! TO BE TESTED
