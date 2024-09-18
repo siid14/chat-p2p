@@ -1,21 +1,16 @@
 import java.io.IOException;
 import java.net.*;
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.net.Socket;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
-
 public class chat {
-
     // * MAIN CLASS TO INIT AND START P2P CHAT 
     public static void main(String[] args) {
-
         // check if the port number has been included in command line
         if(args.length != 1){
             System.out.println("Missing port number -- make run <port>");
@@ -30,17 +25,20 @@ public class chat {
         // start PeerServer and UserInterface in separate threads
         new Thread(peerServer).start();
         new Thread(ui).start();
-        
     }
 }
 
-// TODO: Add enum for connection messages (CONNECT_REQUEST, CONNECT_ACK, CONNECT_CONFIRM)
+// package-private enum ConnectionMessage
+enum ConnectionMessage {
+    CONNECT_REQUEST,
+    CONNECT_ACK,
+    CONNECT_CONFIRM
+}
 
 // * PeerServer CLASS TO MANAGE INCOMING CONNECTIONS 
 class PeerServer implements Runnable {
     private int port;
-
-     // TODO: Add fields to track connection state (isConnecting, isConnected)
+    private boolean isConnecting, isConnected;
 
     public PeerServer (int port){
         this.port = port;
@@ -59,14 +57,11 @@ class PeerServer implements Runnable {
                 // start a new thread to handle connection
                 new Thread(new ConnectionHandler(clientSocket)).start();
             }
-            } catch(IOException e) {
-                System.out.println("Server exception " + e.getMessage());
-
-            }
+        } catch(IOException e) {
+            System.out.println("Server exception " + e.getMessage());
         }
-
     }
-
+}
 
 // * PeerClient CLASS TO MANAGE OUTGOING CONNECTION
 class PeerClient implements Runnable {
@@ -88,12 +83,17 @@ class PeerClient implements Runnable {
         this.myIPs = getMyIPs();
     }
 
+    private enum ConnectionState {
+        CONNECTING,
+        CONNECTED,
+        DISCONNECTED
+    }
+
     // ! TO BE TESTED
-    public List<String> getMyIPs()
-    {
+    public List<String> getMyIPs() {
         System.out.println("Starting gathering IP addresses");
         try{
-            List<String> ipAdresses = NetworkInterface.networkInterfaces()
+            List<String> ipAddresses = NetworkInterface.networkInterfaces()
             .peek(iface -> System.out.println("\nExamining Interface... " + iface.getName()))
             .filter (iface -> {
                 try {
@@ -108,8 +108,8 @@ class PeerClient implements Runnable {
             .map(addr -> addr.getHostAddress())
             .collect(Collectors.toList());
 
-            System.out.println("\nFinished gathering IP addresses. Total found: " + ipAdresses.size());
-            return ipAdresses;
+            System.out.println("\nFinished gathering IP addresses. Total found: " + ipAddresses.size());
+            return ipAddresses;
         }  
         catch (SocketException e){
             System.out.println("Error getting network interfaces: " + e.getMessage());
@@ -133,12 +133,17 @@ class PeerClient implements Runnable {
     
     @Override 
     public void run() {
-        connect(peerIP, peerPort, myPort);
+        try{
+            System.out.println("Initiating connection...");
+            connect(peerIP, peerPort, myPort);
+        } catch (IOException e){
+            System.out.println("Connection failed: " + e.getMessage());
+        }
     }
 
     // TODO: add connection confirmation (success/failure) msg to both peers
     // connect to a peer
-    public void connect(String peerIP, int peerPort, int myPort){
+    public void connect(String peerIP, int peerPort, int myPort) throws IOException {
         this.peerIP = peerIP;
         this.peerPort = peerPort;
         this.myPort = myPort;
@@ -157,9 +162,7 @@ class PeerClient implements Runnable {
             System.out.println("Connection to self detected. Aborting connection.");
             return;
         }
-       
-        
-
+    
         // ! TO BE TESTED
         // check if the connection already exists
         if(activeConnections.containsKey(connectionKey)){
@@ -172,46 +175,38 @@ class PeerClient implements Runnable {
             }
         }
 
-         // TODO: Implement connection handshake protocol
+        // TODO: Implement connection handshake protocol
         // TODO: Add timeout mechanism for connection attempts
         // TODO: Update connection status based on handshake result
         // TODO: Log success or failure of connection attempt
-     
+    
         // * ESTABLISH A CONNECTION TO A PEER 
-        try {
-            // attempt to connect to the specified peer
-            newSocket = new Socket(peerIP, peerPort);
-            activeConnections.put(connectionKey, newSocket);
-            System.out.println("Connected to peer at " + connectionKey);
+        // attempt to connect to the specified peer
+        newSocket = new Socket(peerIP, peerPort);
+        activeConnections.put(connectionKey, newSocket);
+        System.out.println("Connected to peer at " + connectionKey);
 
-            // read and write to the newSocket
-            input = new BufferedReader(new InputStreamReader(newSocket.getInputStream())); 
-            output = new PrintWriter(newSocket.getOutputStream(), true);
-
-            
-            
-            // start a new thread to handle the connection
-            new Thread(() -> {
-                try {
-                    String inputLine;
-                    while ((inputLine = input.readLine()) != null) {
-                        System.out.println("Received message: " + inputLine + " from " + peerIP);
-                    }
-                } catch (IOException e) {
-                    System.out.println("Error reading from newSocket: " + e.getMessage());
+        // read and write to the newSocket
+        input = new BufferedReader(new InputStreamReader(newSocket.getInputStream())); 
+        output = new PrintWriter(newSocket.getOutputStream(), true);
+        
+        // start a new thread to handle the connection
+        new Thread(() -> {
+            try {
+                String inputLine;
+                while ((inputLine = input.readLine()) != null) {
+                    System.out.println("Received message: " + inputLine + " from " + peerIP);
                 }
-            }).start();
-        } catch (IOException e) {
-            System.out.println("Connection failed: " + e.getMessage());
-        }
+            } catch (IOException e) {
+                System.out.println("Error reading from newSocket: " + e.getMessage());
+            }
+        }).start();
     }
-
-
 
     // * METHODS
     // send a message to the connected peer
     public void sendMessage(String message){
-        if(output != null){
+        if(output != null){ // check if the output stream is open
             output.println(message); // send the message
             output.flush(); // sent the message immediately
         }
@@ -242,8 +237,24 @@ class PeerClient implements Runnable {
         }
     }
 
-     // TODO: Implement sendConnectionMessage method
-     // TODO: Implement receiveConnectionMessage method
+    public void sendConnectionMessage(ConnectionMessage message){
+        if(output != null){ // check if the output stream is open
+            output.println(message); // send the message
+            output.flush(); // sent the message immediately
+            System.out.println("ConnectionMessage sent: " + message);
+        }
+    }
+
+    public void receiveConnectionMessage(){
+        if(input != null){ // check if input stream is open
+            try{
+                String inputLine = input.readLine();
+                System.out.println("Received ConnectionMessage: " + inputLine);
+            } catch (IOException e){
+                System.out.println("Error reading from newSocket: " + e.getMessage());
+            }
+        }
+    }
 }
 
 //* ConnectionHandler CLASS TO MANAGE INDIVIDUAL PEER CONNECTIONS
@@ -251,8 +262,7 @@ class ConnectionHandler implements Runnable {
     private Socket newSocket;
 
     public ConnectionHandler(Socket newSocket){
-        this.newSocket= newSocket;
-
+        this.newSocket = newSocket;
     }
 
     @Override 
@@ -263,7 +273,6 @@ class ConnectionHandler implements Runnable {
 
 //* UserInterface CLASS TO PROCESS USER COMMANDS AND DISPLAY INFORMATIONS
 class UserInterface implements Runnable {
-
     @Override 
     public void run() {
         // TODO: Implement user interface logic
