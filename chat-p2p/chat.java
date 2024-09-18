@@ -34,9 +34,13 @@ public class chat {
     }
 }
 
+// TODO: Add enum for connection messages (CONNECT_REQUEST, CONNECT_ACK, CONNECT_CONFIRM)
+
 // * PeerServer CLASS TO MANAGE INCOMING CONNECTIONS 
 class PeerServer implements Runnable {
     private int port;
+
+     // TODO: Add fields to track connection state (isConnecting, isConnected)
 
     public PeerServer (int port){
         this.port = port;
@@ -167,6 +171,11 @@ class PeerClient implements Runnable {
                 activeConnections.remove(connectionKey);
             }
         }
+
+         // TODO: Implement connection handshake protocol
+        // TODO: Add timeout mechanism for connection attempts
+        // TODO: Update connection status based on handshake result
+        // TODO: Log success or failure of connection attempt
      
         // * ESTABLISH A CONNECTION TO A PEER 
         try {
@@ -181,7 +190,6 @@ class PeerClient implements Runnable {
 
             
             
- 
             // start a new thread to handle the connection
             new Thread(() -> {
                 try {
@@ -197,6 +205,8 @@ class PeerClient implements Runnable {
             System.out.println("Connection failed: " + e.getMessage());
         }
     }
+
+
 
     // * METHODS
     // send a message to the connected peer
@@ -231,6 +241,9 @@ class PeerClient implements Runnable {
             }
         }
     }
+
+     // TODO: Implement sendConnectionMessage method
+     // TODO: Implement receiveConnectionMessage method
 }
 
 //* ConnectionHandler CLASS TO MANAGE INDIVIDUAL PEER CONNECTIONS
