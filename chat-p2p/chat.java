@@ -153,17 +153,19 @@ class PeerClient implements Runnable {
         this.myPort = myPort;
         String connectionKey = peerIP + ":" + peerPort;
 
+        System.out.println("Attempting to connect to " + connectionKey);
+
         
         //  check is the IP address is valid
         if(!isValidIP(peerIP)){
-            System.out.println("Not Valid IP address: " + peerIP);
+            System.err.println("Error: Invalid IP address '" + peerIP + "'. Connection attempt aborted.");
             return;
         }
 
  
         // check if the connection is to self
         if(isConnectionToSelf(peerIP, peerPort)){
-            System.out.println("Connection to self detected. Aborting connection.");
+            System.err.println("Error: Attempt to connect to self detected (IP: " + peerIP + ", Port: " + peerPort + "). Connection aborted.");
             return;
         }
     
@@ -173,8 +175,7 @@ class PeerClient implements Runnable {
             System.out.println("Existing socket found for " + connectionKey);
 
             if(existingSocket != null && !existingSocket.isClosed()){
-                System.out.println("Connection to " + connectionKey + " already exists");
-                System.out.println("Socket is not null and not closed");
+                System.err.println("Error: Connection to " + connectionKey + " already exists. Duplicate connection attempt aborted.");
                 return;
             } else {
                 System.out.println("Removing closed or null socket for " + connectionKey);
