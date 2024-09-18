@@ -131,7 +131,6 @@ public List<String> getMyIPs()
         connect(peerIP, peerPort, myPort);
     }
 
-    // TODO: add check for connection to self
     // TODO: add connection confirmation msg to both peers
     // connect to a peer
     public void connect(String peerIP, int peerPort, int myPort){
