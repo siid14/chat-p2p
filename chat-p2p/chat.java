@@ -89,6 +89,8 @@ class PeerClient implements Runnable {
         DISCONNECTED
     }
 
+     ConnectionState state = ConnectionState.DISCONNECTED;
+
     // ! TO BE TESTED
     public List<String> getMyIPs() {
         System.out.println("Starting gathering IP addresses");
@@ -189,7 +191,19 @@ class PeerClient implements Runnable {
         // read and write to the newSocket
         input = new BufferedReader(new InputStreamReader(newSocket.getInputStream())); 
         output = new PrintWriter(newSocket.getOutputStream(), true);
-        
+
+        state = ConnectionState.CONNECTING;
+        sendConnectionMessage(ConnectionMessage.CONNECT_REQUEST);
+
+        ConnectionMessage response = receiveConnectionMessage();
+        if(response == ConnectionMessage.CONNECT_ACK){
+            sendConnectionMessage(ConnectionMessage.CONNECT_CONFIRM);
+            state = ConnectionState.CONNECTED;
+            System.out.println("Connection established with " + peerIP + ":" + peerPort);
+        } else {
+            state = ConnectionState.DISCONNECTED;
+            throw new IOException("Unexpected response during handshake");
+        }
         // start a new thread to handle the connection
         new Thread(() -> {
             try {
@@ -245,16 +259,27 @@ class PeerClient implements Runnable {
         }
     }
 
-    public void receiveConnectionMessage(){
-        if(input != null){ // check if input stream is open
-            try{
+    public ConnectionMessage receiveConnectionMessage() throws IOException {
+        if (input != null) {
+            try {
                 String inputLine = input.readLine();
-                System.out.println("Received ConnectionMessage: " + inputLine);
-            } catch (IOException e){
-                System.out.println("Error reading from newSocket: " + e.getMessage());
+                if (inputLine == null) {
+                    throw new IOException("Connection closed by peer");
+                }
+                ConnectionMessage message = ConnectionMessage.valueOf(inputLine);
+                System.out.println("Received ConnectionMessage: " + message);
+                return message;
+            } catch (IllegalArgumentException e) {
+                String inputLine = e.getMessage();
+                throw new IOException("Invalid connection message received: " + inputLine);
+            } catch (IOException e) {
+                throw new IOException("Error reading from input stream: " + e.getMessage());
             }
         }
-    }
+        throw new IOException("Input stream is null");
+}
+
+
 }
 
 //* ConnectionHandler CLASS TO MANAGE INDIVIDUAL PEER CONNECTIONS
