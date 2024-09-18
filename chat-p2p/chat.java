@@ -374,7 +374,7 @@ class ConnectionHandler implements Runnable {
             System.out.println("Sent CONNECT_ACK to peer: " + peerIP + ":" + peerPort);
 
             ConnectionMessage confirm = receiveConnectionMessage();
-            System.out.println("Received confirmation from peer: " + confirm);
+            System.out.println("Received " + confirm + " from peer: " + peerIP + ":" + peerPort);
 
             if (confirm == ConnectionMessage.CONNECT_CONFIRM) {
                 state = ConnectionState.CONNECTED;
@@ -393,11 +393,11 @@ class ConnectionHandler implements Runnable {
         try {
             String inputLine;
             while (state == ConnectionState.CONNECTED && (inputLine = input.readLine()) != null){
-                System.out.println("Received message: " + inputLine + " from " + peerIP);
+                System.out.println("Received from " + peerIP + ":" + peerPort + " - " + inputLine);
             }
         } catch (IOException e) {
             state = ConnectionState.DISCONNECTED;
-            System.out.println("Error reading from socket: " + e.getMessage());
+            System.err.println("Error reading from peer " + peerIP + ":" + peerPort + " - " + e.getMessage());
         }
     }
 
