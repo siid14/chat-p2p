@@ -11,6 +11,8 @@ import java.util.stream.Collectors;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.ConcurrentHashMap;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 public class chat {
 
@@ -257,6 +259,7 @@ class ConnectionHandler implements Runnable {
     }
 }
 
+
 //* UserInterface CLASS TO PROCESS USER COMMANDS AND DISPLAY INFORMATIONS
 class UserInterface implements Runnable {
     private Scanner scanner;
@@ -278,6 +281,15 @@ class UserInterface implements Runnable {
                 case "/help":
                     displayHelp();
                     break;
+
+                case "/myip":
+                    try {
+                        System.out.println(getPrivateIP());
+                    } catch (UnknownHostException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                    break;
             }
 
             
@@ -295,6 +307,11 @@ class UserInterface implements Runnable {
         System.out.println("\t/terminate <connection_id>: This command will terminate the connection listed under the specified number when LIST is used to display all connections.\n");
         System.out.println("\t/send <connection_id> <message>: This will send the message to the host on the connection that is designated. The message to be sent can be up-to 100 characters long, including blank spaces.\n");
         System.out.println("\t/exit: Close all connections and terminate this process.\n");
+    }
+
+    //Gets IP address of computer
+    private String getPrivateIP() throws UnknownHostException {
+        return InetAddress.getLocalHost().getHostAddress();
     }
 
    
