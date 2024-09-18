@@ -1,5 +1,6 @@
 import java.io.IOException;
 import java.net.*;
+import java.sql.Connection;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -38,7 +39,18 @@ enum ConnectionMessage {
 // * PeerServer CLASS TO MANAGE INCOMING CONNECTIONS 
 class PeerServer implements Runnable {
     private int port;
-    private boolean isConnecting, isConnected;
+    private BufferedReader input;
+    private PrintWriter output;
+    private String peerIP;
+    private int peerPort;
+   
+    private enum ConnectionState {
+        CONNECTING,
+        CONNECTED,
+        DISCONNECTED
+    }
+
+    ConnectionState state = ConnectionState.DISCONNECTED;
 
     public PeerServer (int port){
         this.port = port;
@@ -54,6 +66,18 @@ class PeerServer implements Runnable {
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("New connection from " + clientSocket.getInetAddress());
 
+                state = ConnectionState.CONNECTING;
+        
+                ConnectionMessage response = receiveConnectionMessage();
+                if(response == ConnectionMessage.CONNECT_REQUEST){
+                    sendConnectionMessage(ConnectionMessage.CONNECT_ACK);
+                    state = ConnectionState.CONNECTED;
+                    System.out.println("Connection established with " + peerIP + ":" + peerPort);
+                } else {
+                    state = ConnectionState.DISCONNECTED;
+                    throw new IOException("Unexpected response during handshake");
+                }
+
                 // start a new thread to handle connection
                 new Thread(new ConnectionHandler(clientSocket)).start();
             }
@@ -61,6 +85,38 @@ class PeerServer implements Runnable {
             System.out.println("Server exception " + e.getMessage());
         }
     }
+
+    private void sendConnectionMessage(ConnectionMessage message) throws IOException {
+        if (output != null) {
+            output.println(message);
+            output.flush();
+            System.out.println("ConnectionMessage sent: " + message);
+        } else {
+            throw new IOException("Output stream is null");
+        }
+    }
+
+    private ConnectionMessage receiveConnectionMessage() throws IOException {
+        if (input != null) {
+            try {
+                String inputLine = input.readLine();
+                if (inputLine == null) {
+                    throw new IOException("Connection closed by peer");
+                }
+                ConnectionMessage message = ConnectionMessage.valueOf(inputLine);
+                System.out.println("Received ConnectionMessage: " + message);
+                return message;
+            } catch (IllegalArgumentException e) {
+                String inputLine = e.getMessage();
+                throw new IOException("Invalid connection message received: " + inputLine);
+            } catch (IOException e) {
+                throw new IOException("Error reading from input stream: " + e.getMessage());
+            }
+        }
+        throw new IOException("Input stream is null");
+    }
+
+    
 }
 
 // * PeerClient CLASS TO MANAGE OUTGOING CONNECTION
@@ -169,18 +225,18 @@ class PeerClient implements Runnable {
         // check if the connection already exists
         if(activeConnections.containsKey(connectionKey)){
             Socket existingSocket = activeConnections.get(connectionKey);
+            System.out.println("Existing socket found for " + connectionKey);
+
             if(existingSocket != null && !existingSocket.isClosed()){
                 System.out.println("Connection to " + connectionKey + " already exists");
+                System.out.println("Socket is not null and not closed");
                 return;
             } else {
+                System.out.println("Removing closed or null socket for " + connectionKey);
                 activeConnections.remove(connectionKey);
             }
         }
 
-        // TODO: Implement connection handshake protocol
-        // TODO: Add timeout mechanism for connection attempts
-        // TODO: Update connection status based on handshake result
-        // TODO: Log success or failure of connection attempt
     
         // * ESTABLISH A CONNECTION TO A PEER 
         // attempt to connect to the specified peer
@@ -220,9 +276,14 @@ class PeerClient implements Runnable {
     // * METHODS
     // send a message to the connected peer
     public void sendMessage(String message){
+        System.out.println("Attempting to send message: " + message);
         if(output != null){ // check if the output stream is open
+            System.out.println("Output stream is not null");
             output.println(message); // send the message
             output.flush(); // sent the message immediately
+            System.out.println("Message sent and flushed");
+        } else {
+            System.out.println("Output stream is null, unable to send message");
         }
     }
 
@@ -277,7 +338,7 @@ class PeerClient implements Runnable {
             }
         }
         throw new IOException("Input stream is null");
-}
+    }
 
 
 }
