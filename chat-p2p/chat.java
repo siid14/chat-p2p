@@ -202,6 +202,7 @@ class PeerClient implements Runnable {
         input = new BufferedReader(new InputStreamReader(newSocket.getInputStream())); 
         output = new PrintWriter(newSocket.getOutputStream(), true);
 
+        System.out.println("\n-----------------PeerClient-Handshake-Process------------------------------------------\n");
         System.out.println("Initiating handshake with peer: " + peerIP + ":" + peerPort + "\n");
 
         // ? (Optional): Implement timeout mechanism for handshake
@@ -220,7 +221,8 @@ class PeerClient implements Runnable {
             sendConnectionMessage(ConnectionMessage.CONNECT_CONFIRM);
             System.out.println("Sent CONNECT_CONFIRM to peer: " + peerIP + ":" + peerPort);
             state = ConnectionState.CONNECTED;
-            System.out.println("\nConnection established with " + peerIP + ":" + peerPort + "\n");
+            System.out.println("\nConnection established with " + peerIP + ":" + peerPort);
+            System.out.println("-----------------------------------------------------------\n");
         } else {
             state = ConnectionState.DISCONNECTED;
             System.err.println("Handshake failed. Unexpected response during handshake: " + response);
@@ -366,6 +368,7 @@ class ConnectionHandler implements Runnable {
 
     // perform the connection handshake
     private void performHandshake () throws IOException {
+        System.out.println("-----------------ConnectioHandler-Handshake-Process------------------------------------------");
         System.out.println("Starting handshake process with peer: " + peerIP + ":" + peerPort);
         state = ConnectionState.CONNECTING;
 
@@ -390,6 +393,8 @@ class ConnectionHandler implements Runnable {
             if (confirm == ConnectionMessage.CONNECT_CONFIRM) {
                 state = ConnectionState.CONNECTED;
                 System.out.println("Handshake completed. Connection established with " + peerIP + ":" + peerPort);
+                System.out.println("-----------------------------------------------------------\n");
+                
             } else {
                 System.err.println("Handshake failed. Unexpected confirmation message: " + confirm);
                 throw new IOException("Unexpected confirmation message during handshake: " + confirm);
