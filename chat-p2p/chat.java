@@ -22,7 +22,7 @@ public class chat {
         int port = Integer.parseInt(args[0]);  // convert arg to int (in case it's string)
 
         PeerServer peerServer = new PeerServer(port);
-        UserInterface ui = new UserInterface();
+        UserInterface ui = new UserInterface(port);
 
         // start PeerServer and UserInterface in separate threads
         new Thread(peerServer).start();
@@ -458,10 +458,13 @@ class ConnectionHandler implements Runnable {
 //* UserInterface CLASS TO PROCESS USER COMMANDS AND DISPLAY INFORMATIONS
 class UserInterface implements Runnable {
     private Scanner scanner;
+    private int myPort;
 
-    public UserInterface() {
+    public UserInterface(int myPort) {
         scanner = new Scanner(System.in);
+        this.myPort = myPort;
     }
+
     @Override 
     public void run() {
       
@@ -470,8 +473,9 @@ class UserInterface implements Runnable {
         while(true){
             System.out.print(">> ");
             String input = scanner.nextLine();
+            String[] parts = input.split("\\s+"); // split input into parts
 
-            switch(input){
+            switch(parts[0]){
                 case "/help":
                     displayHelp();
                     break;
@@ -483,14 +487,28 @@ class UserInterface implements Runnable {
                         // TODO Auto-generated catch block
                         e.printStackTrace();
                     }
+                    case "/connect":
+                    if (parts.length == 3) {
+                        String peerIP = parts[1];
+                        int peerPort = Integer.parseInt(parts[2]);
+                        System.out.println("Connecting to " + peerIP + ":" + peerPort);
+                        connectToPeer(peerIP, peerPort);
+                    } else {
+                        System.out.println("Usage: /connect <destination> <port no>");
+                    }
                     break;
-            }
 
-            
+                    default:
+                    System.out.println("Unknown command. Type /help for a list of commands.");
+            }  
         }
-
-       
     }
+
+    private void connectToPeer(String peerIP, int peerPort) {
+        PeerClient client = new PeerClient(peerIP, peerPort, myPort);
+        new Thread(client).start();
+    }
+
     private void displayHelp(){
         System.out.println("Information about built in commands: \n\n");
         System.out.println("\t/help: Displays information about the available user interface options or manual.\n");
@@ -503,7 +521,7 @@ class UserInterface implements Runnable {
         System.out.println("\t/exit: Close all connections and terminate this process.\n");
     }
 
-    //Gets IP address of computer
+    //gets IP address of computer
     private String getPrivateIP() throws UnknownHostException {
         return InetAddress.getLocalHost().getHostAddress();
     }
