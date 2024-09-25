@@ -491,12 +491,11 @@ class ConnectionHandler implements Runnable {
 class UserInterface implements Runnable {
     private Scanner scanner;
     private int myPort;
-    private List<PeerClient> peerClients;
+    private PeerClient client;
 
     public UserInterface(int myPort) {
         scanner = new Scanner(System.in);
         this.myPort = myPort;
-        this.peerClients = new ArrayList<>();
     }
 
     @Override 
@@ -543,15 +542,12 @@ class UserInterface implements Runnable {
     }
 
     private void connectToPeer(String peerIP, int peerPort) {
-        PeerClient client = new PeerClient(peerIP, peerPort, myPort);
-        peerClients.add(client);
+        this.client = new PeerClient(peerIP, peerPort, myPort);
         new Thread(client).start();
     }
 
     private void listAllConnections(){
-        for(int i = 0; i < peerClients.size(); i++){
-            peerClients.get(i).listConnections(); // Call listConnection on each client
-        }
+        client.listConnections();
     }
 
     private void displayHelp(){
