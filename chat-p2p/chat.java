@@ -509,7 +509,7 @@ class UserInterface implements Runnable {
                     }
                     break;
                 case "/myport":
-                    System.out.println("Server is listening to port: " + myPort);
+                    System.out.println("Server is listening on port: " + myPort);
                     break;
                 default:
                     System.out.println("Unknown command. Type /help for a list of commands.");
