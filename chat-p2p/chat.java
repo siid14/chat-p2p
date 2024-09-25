@@ -96,6 +96,7 @@ class PeerClient implements Runnable {
 
     
     public List<String> getMyIPs() {
+        System.out.println("-----------------------------------------------------------");
         System.out.println("Starting gathering IP addresses");
         try{
             List<String> ipAddresses = NetworkInterface.networkInterfaces()
@@ -114,6 +115,7 @@ class PeerClient implements Runnable {
             .collect(Collectors.toList());
 
             System.out.println("\nFinished gathering IP addresses. Total found: " + ipAddresses.size());
+            System.out.println("-----------------------------------------------------------\n");
             return ipAddresses;
         }  
         catch (SocketException e){
@@ -125,12 +127,16 @@ class PeerClient implements Runnable {
 
     public boolean isConnectionToSelf(String peerIP, int peerPort){
         if(myPort == peerPort && myIPs.contains(peerIP)){
+            System.out.println("-----------------------------------------------------------");
             System.out.println("Attempting to connect to self (same IP and port). Connection aborted.");
+            System.out.println("-----------------------------------------------------------\n");
             return true;
         }
 
         if (myIPs.contains(peerIP)) {
+            System.out.println("-----------------------------------------------------------");
             System.out.println("Note: Connecting to own IP address but different port.");
+            System.out.println("-----------------------------------------------------------\n");
         }
 
         return false;
@@ -139,7 +145,7 @@ class PeerClient implements Runnable {
     @Override 
     public void run() {
         try{
-            System.out.println("Initiating connection...");
+            System.out.println("Initiating connection...\n");
             connect(peerIP, peerPort, myPort);
         } catch (IOException e){
             System.out.println("Connection failed: " + e.getMessage());
@@ -155,6 +161,7 @@ class PeerClient implements Runnable {
         String connectionKey = peerIP + ":" + peerPort;
 
         System.out.println("Attempting to connect to " + connectionKey);
+
 
         
         //  check is the IP address is valid
@@ -195,8 +202,7 @@ class PeerClient implements Runnable {
         input = new BufferedReader(new InputStreamReader(newSocket.getInputStream())); 
         output = new PrintWriter(newSocket.getOutputStream(), true);
 
-        System.out.println("Initiating handshake with peer: " + peerIP + ":" + peerPort);
-        state = ConnectionState.CONNECTING;
+        System.out.println("Initiating handshake with peer: " + peerIP + ":" + peerPort + "\n");
 
         // ? (Optional): Implement timeout mechanism for handshake
     
@@ -204,17 +210,17 @@ class PeerClient implements Runnable {
         // ? (Optional): Implement retry mechanism for failed handshakes
     
         sendConnectionMessage(ConnectionMessage.CONNECT_REQUEST);
-        System.out.println("Sent CONNECT_REQUEST to peer: " + peerIP + ":" + peerPort);
+        System.out.println("Sent CONNECT_REQUEST to peer: " + peerIP + ":" + peerPort + "\n");
 
         ConnectionMessage response = receiveConnectionMessage();
-        System.out.println("Received response from peer: " + response);
+        System.out.println("Received response from peer: " + response + "\n");
 
         if(response == ConnectionMessage.CONNECT_ACK){
             System.out.println("Received CONNECT_ACK from peer: " + peerIP + ":" + peerPort);
             sendConnectionMessage(ConnectionMessage.CONNECT_CONFIRM);
             System.out.println("Sent CONNECT_CONFIRM to peer: " + peerIP + ":" + peerPort);
             state = ConnectionState.CONNECTED;
-            System.out.println("Connection established with " + peerIP + ":" + peerPort);
+            System.out.println("\nConnection established with " + peerIP + ":" + peerPort + "\n");
         } else {
             state = ConnectionState.DISCONNECTED;
             System.err.println("Handshake failed. Unexpected response during handshake: " + response);
@@ -250,9 +256,9 @@ class PeerClient implements Runnable {
   
     // check if the IP address is valid
     public static boolean isValidIP(String peerIP){
-        System.out.println("Checking IP address: " + peerIP);
+        System.out.println("Checking IP address: " + peerIP + "\n");
         if (peerIP == null || peerIP.isEmpty()){
-            System.out.println("IP address is empty or null");
+            System.out.println("IP address is empty or null" + "\n");
             return false;
         }   
         return VALID_IP_PATTERN.matcher(peerIP).matches();
@@ -278,7 +284,7 @@ class PeerClient implements Runnable {
         if(output != null){ // check if the output stream is open
             output.println(message); // send the message
             output.flush(); // sent the message immediately
-            System.out.println("ConnectionMessage sent: " + message);
+            System.out.println("ConnectionMessage sent: " + message );
         }
     }
 
