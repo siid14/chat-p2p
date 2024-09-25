@@ -6,7 +6,9 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -255,6 +257,24 @@ class PeerClient implements Runnable {
         }
     }
 
+    // list all connection process is part of
+    public void listConnections(){
+        System.out.println("ID:\tIP Address\t\tPort No.");
+        int connectionId = 1;  // Start with ID 1
+        for (Map.Entry<String, Socket> entry : activeConnections.entrySet()) {
+            String connectionKey = entry.getKey();
+            Socket socket = entry.getValue();
+    
+            // Print the connection details in the desired format
+            System.out.printf("%d:\t%s\t\t%d%n", 
+                connectionId, 
+                socket.getInetAddress().getHostAddress(), 
+                socket.getPort());
+    
+            connectionId++; // Increment the connection ID
+        }
+    }
+
   
     // check if the IP address is valid
     public static boolean isValidIP(String peerIP){
@@ -466,14 +486,17 @@ class ConnectionHandler implements Runnable {
     }
 }
 
+
 //* UserInterface CLASS TO PROCESS USER COMMANDS AND DISPLAY INFORMATIONS
 class UserInterface implements Runnable {
     private Scanner scanner;
     private int myPort;
+    private List<PeerClient> peerClients;
 
     public UserInterface(int myPort) {
         scanner = new Scanner(System.in);
         this.myPort = myPort;
+        this.peerClients = new ArrayList<>();
     }
 
     @Override 
@@ -498,16 +521,20 @@ class UserInterface implements Runnable {
                         // TODO Auto-generated catch block
                         e.printStackTrace();
                     }
-                    case "/connect":
-                    if (parts.length == 3) {
-                        String peerIP = parts[1];
-                        int peerPort = Integer.parseInt(parts[2]);
-                        System.out.println("Connecting to " + peerIP + ":" + peerPort);
-                        connectToPeer(peerIP, peerPort);
-                    } else {
-                        System.out.println("Usage: /connect <destination> <port no>");
-                    }
                     break;
+                case "/list":
+                    listAllConnections();
+                    break;
+                case "/connect":
+                if (parts.length == 3) {
+                    String peerIP = parts[1];
+                    int peerPort = Integer.parseInt(parts[2]);
+                    System.out.println("Connecting to " + peerIP + ":" + peerPort);
+                    connectToPeer(peerIP, peerPort);
+                } else {
+                    System.out.println("Usage: /connect <destination> <port no>");
+                }
+                break;
 
                     default:
                     System.out.println("Unknown command. Type /help for a list of commands.");
@@ -517,7 +544,14 @@ class UserInterface implements Runnable {
 
     private void connectToPeer(String peerIP, int peerPort) {
         PeerClient client = new PeerClient(peerIP, peerPort, myPort);
+        peerClients.add(client);
         new Thread(client).start();
+    }
+
+    private void listAllConnections(){
+        for(int i = 0; i < peerClients.size(); i++){
+            peerClients.get(i).listConnections(); // Call listConnection on each client
+        }
     }
 
     private void displayHelp(){
