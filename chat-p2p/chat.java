@@ -498,7 +498,7 @@ class UserInterface implements Runnable {
                         // TODO Auto-generated catch block
                         e.printStackTrace();
                     }
-                    case "/connect":
+                case "/connect":
                     if (parts.length == 3) {
                         String peerIP = parts[1];
                         int peerPort = Integer.parseInt(parts[2]);
@@ -508,8 +508,10 @@ class UserInterface implements Runnable {
                         System.out.println("Usage: /connect <destination> <port no>");
                     }
                     break;
-
-                    default:
+                case "/myport":
+                    System.out.println("Server is listening on port: " + myPort);
+                    break;
+                default:
                     System.out.println("Unknown command. Type /help for a list of commands.");
             }  
         }
