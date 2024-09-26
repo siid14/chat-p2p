@@ -7,6 +7,7 @@ import java.io.PrintWriter;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
@@ -80,6 +81,7 @@ class PeerClient implements Runnable {
     private static final String VALID_IP_REGEX = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$";
     private static final Pattern VALID_IP_PATTERN = Pattern.compile(VALID_IP_REGEX);
     private static final ConcurrentHashMap<String, Socket> activeConnections = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Integer, Socket> socketMap = new ConcurrentHashMap<>();
 
     public PeerClient(String peerIP, int peerPort, int myPort){
         this.peerIP = peerIP ;
@@ -257,22 +259,18 @@ class PeerClient implements Runnable {
         }
     }
 
-    // list all connection process is part of
-    public void listConnections(){
-        System.out.println("ID:\tIP Address\t\tPort No.");
+    // add all active peers to socketMap to have a connection ID map to a socket
+    public ConcurrentHashMap<Integer, Socket> mapConnections(){
+        
         int connectionId = 1;  // Start with ID 1
         for (Map.Entry<String, Socket> entry : activeConnections.entrySet()) {
-            String connectionKey = entry.getKey();
             Socket socket = entry.getValue();
     
-            // Print the connection details in the desired format
-            System.out.printf("%d:\t%s\t\t%d%n", 
-                connectionId, 
-                socket.getInetAddress().getHostAddress(), 
-                socket.getPort());
-    
+            socketMap.put(connectionId, socket);
             connectionId++; // Increment the connection ID
         }
+
+        return socketMap;
     }
 
   
@@ -533,7 +531,27 @@ class UserInterface implements Runnable {
                 } else {
                     System.out.println("Usage: /connect <destination> <port no>");
                 }
-                break;
+                    break;
+                case "/send":
+                    if(parts.length >= 3)  {
+                        try{
+                            int connectionID = Integer.parseInt(parts[1]);
+                            String[] messageArray = Arrays.copyOfRange(parts, 2, parts.length);
+                            String fullMessage = String.join(" ", messageArray);
+                            if(fullMessage.length() > 100){
+                                System.out.println("Message is over 100 characters long. Try another message");
+                                break;
+                            }else{
+                                sendMessageToPeer(connectionID, fullMessage);
+
+                            }
+                        }catch (NumberFormatException e){
+                            System.out.println("ID input error. Must be a number");
+
+                        }
+                    }
+                    break;
+
 
                     default:
                     System.out.println("Unknown command. Type /help for a list of commands.");
@@ -547,7 +565,22 @@ class UserInterface implements Runnable {
     }
 
     private void listAllConnections(){
-        client.listConnections();
+        System.out.println("ID:\tIP Address\t\tPort No.");
+        ConcurrentHashMap<Integer, Socket> allConnections = client.mapConnections();
+        for (Map.Entry<Integer, Socket> entry : allConnections.entrySet()) {
+            Socket socket = entry.getValue();
+            //Print the connection details in the desired format
+            System.out.printf("%d:\t%s\t\t%d%n", 
+                entry.getKey(), 
+                socket.getInetAddress().getHostAddress(), 
+                socket.getPort());
+        }
+        
+    }
+
+    private void sendMessageToPeer(int connectionID, String message){
+        //check if there is a connection 
+
     }
 
     private void displayHelp(){
