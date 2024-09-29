@@ -100,6 +100,7 @@ class PeerClient implements Runnable {
         System.out.println("Starting gathering IP addresses");
         try{
             List<String> ipAddresses = NetworkInterface.networkInterfaces()
+            // filter out loopback interfaces and interfaces that are not up
             .peek(iface -> System.out.println("\nExamining Interface... " + iface.getName()))
             .filter (iface -> {
                 try {
@@ -109,9 +110,13 @@ class PeerClient implements Runnable {
                     return false;
                 }
             })
-            .flatMap(iface -> iface.inetAddresses())
+            // get all IP addresses associated with the interface
+            .flatMap(iface -> iface.inetAddresses()) 
+            // print each IP address found
             .peek(addr -> System.out.println("Found IP address: "  + addr.getHostAddress()))
+             // convert InetAddress objects to String representations of IP addresses
             .map(addr -> addr.getHostAddress())
+            // collect the results into a List
             .collect(Collectors.toList());
 
             System.out.println("\nFinished gathering IP addresses. Total found: " + ipAddresses.size());
@@ -179,13 +184,16 @@ class PeerClient implements Runnable {
     
         // check if the connection already exists
         if(activeConnections.containsKey(connectionKey)){
+            // retrieve the existing socket for this connection key
             Socket existingSocket = activeConnections.get(connectionKey);
             System.out.println("Existing socket found for " + connectionKey);
 
+            // if the existing socket is not null and is still open
             if(existingSocket != null && !existingSocket.isClosed()){
                 System.err.println("Error: Connection to " + connectionKey + " already exists. Duplicate connection attempt aborted.");
                 return;
             } else {
+                // if the existing socket is null or closed, remove it from active connections
                 System.out.println("Removing closed or null socket for " + connectionKey);
                 activeConnections.remove(connectionKey);
             }
@@ -539,7 +547,5 @@ class UserInterface implements Runnable {
         return InetAddress.getLocalHost().getHostAddress();
     }
 
-   
-    
 }
 
