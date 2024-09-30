@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentHashMap.KeySetView;
 
 public class chat {
     // * MAIN CLASS TO INIT AND START P2P CHAT 
@@ -34,16 +35,26 @@ public class chat {
         public static final ConcurrentHashMap<String, Socket> activeConnections = new ConcurrentHashMap<>();
         public static final int MAX_CONNECTIONS = 3;
 
+        // check if a new connection can be accepted
         public static boolean canAcceptNewConnection() {
             return activeConnections.size() < MAX_CONNECTIONS;
         }
 
+        // add a connection to the active connections
         public static void addConnection(String key, Socket socket) {
             activeConnections.put(key, socket);
+            System.out.println("\nAdded connection: " + key + ". Total connections: " + activeConnections.size());
         }
 
+        // remove a connection from the active connections
         public static void removeConnection(String key) {
             activeConnections.remove(key);
+            System.out.println("\nRemoved connection: " + key + ". Total connections: " + activeConnections.size());
+        }
+
+        // get a view of the active connections
+        public static KeySetView<String, Socket> getActiveConnections() {
+            return activeConnections.keySet();
         }
     }
 }
@@ -101,7 +112,7 @@ class PeerClient implements Runnable {
     private PrintWriter output;
     private static final String VALID_IP_REGEX = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$";
     private static final Pattern VALID_IP_PATTERN = Pattern.compile(VALID_IP_REGEX);
-    private static final ConcurrentHashMap<String, Socket> activeConnections = new ConcurrentHashMap<>();
+  
 
     public PeerClient(String peerIP, int peerPort, int myPort){
         this.peerIP = peerIP ;
@@ -538,6 +549,23 @@ class UserInterface implements Runnable {
                         // TODO Auto-generated catch block
                         e.printStackTrace();
                     }
+                case "/list":
+                    // Retrieve and print the list of active connections
+                    KeySetView<String, Socket> activeConnections = chat.ConnectionManager.getActiveConnections();
+                    if(activeConnections.isEmpty()){
+                        System.out.println("No active connections.");
+                    } else {
+                            System.out.println("Active Connections:");
+                            int connectionNumber = 1;
+                            for (String connection : activeConnections) {
+                                String[] connectionParts = connection.split(":");
+                                if (connectionParts.length == 2) {
+                                    System.out.printf("%d: %s\t\t%s%n", connectionNumber, connectionParts[0], connectionParts[1]);
+                                    connectionNumber++;
+                                }
+                            }
+                    }
+                    break;
                 case "/connect":
                     if (parts.length == 3) {
                         String peerIP = parts[1];
