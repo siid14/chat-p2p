@@ -28,6 +28,24 @@ public class chat {
         new Thread(peerServer).start();
         new Thread(ui).start();
     }
+
+    // inner class for ConnectionManager
+    static class ConnectionManager {
+        public static final ConcurrentHashMap<String, Socket> activeConnections = new ConcurrentHashMap<>();
+        public static final int MAX_CONNECTIONS = 3;
+
+        public static boolean canAcceptNewConnection() {
+            return activeConnections.size() < MAX_CONNECTIONS;
+        }
+
+        public static void addConnection(String key, Socket socket) {
+            activeConnections.put(key, socket);
+        }
+
+        public static void removeConnection(String key) {
+            activeConnections.remove(key);
+        }
+    }
 }
 
 // package-private enum ConnectionMessage
@@ -54,10 +72,16 @@ class PeerServer implements Runnable {
             while(true){
                 // accept incoming connections
                 Socket clientSocket = serverSocket.accept();
-                System.out.println("New connection from " + clientSocket.getInetAddress());
+                String connectionKey = clientSocket.getInetAddress().getHostAddress() + ":" + clientSocket.getPort();
 
-                // start a new thread to handle connection
-                new Thread(new ConnectionHandler(clientSocket)).start();
+               if (chat.ConnectionManager.canAcceptNewConnection()) {
+                    System.out.println("New connection from " + connectionKey);
+                    chat.ConnectionManager.addConnection(connectionKey, clientSocket);
+                    new Thread(new ConnectionHandler(clientSocket)).start();
+                } else {
+                    System.out.println("Maximum connections reached. Rejecting connection from " + connectionKey);
+                    clientSocket.close();
+                }
             }
         } catch(IOException e) {
             System.out.println("Server exception " + e.getMessage());
@@ -176,10 +200,16 @@ class PeerClient implements Runnable {
             System.err.println("Error: Attempt to connect to self detected (IP: " + peerIP + ", Port: " + peerPort + "). Connection aborted.");
             return;
         }
+
+        // check if the maximum number of connections has been reached
+        if (!chat.ConnectionManager.canAcceptNewConnection()) {
+            System.out.println("Error: Maximum number of connections (" + chat.ConnectionManager.MAX_CONNECTIONS + ") reached. Cannot connect to " + peerIP + ":" + peerPort);
+            return;
+        }
     
-        // check if the connection already exists
-        if(activeConnections.containsKey(connectionKey)){
-            Socket existingSocket = activeConnections.get(connectionKey);
+         // check if the connection already exists
+         if(chat.ConnectionManager.activeConnections.containsKey(connectionKey)){
+            Socket existingSocket = chat.ConnectionManager.activeConnections.get(connectionKey);
             System.out.println("Existing socket found for " + connectionKey);
 
             if(existingSocket != null && !existingSocket.isClosed()){
@@ -187,15 +217,16 @@ class PeerClient implements Runnable {
                 return;
             } else {
                 System.out.println("Removing closed or null socket for " + connectionKey);
-                activeConnections.remove(connectionKey);
+                chat.ConnectionManager.removeConnection(connectionKey);
             }
         }
+
 
     
         // * ESTABLISH A CONNECTION TO A PEER 
         // attempt to connect to the specified peer
         newSocket = new Socket(peerIP, peerPort);
-        activeConnections.put(connectionKey, newSocket);
+        chat.ConnectionManager.addConnection(connectionKey, newSocket);
         System.out.println("Connected to peer at " + connectionKey);
 
         // read and write to the newSocket
@@ -270,10 +301,11 @@ class PeerClient implements Runnable {
     // close the connection to the specified peer
     public void closeConnection(String peerIP, int peerPort) {
         String connectionKey = peerIP + ":" + peerPort;
-        Socket newSocket = activeConnections.remove(connectionKey);
-        if (newSocket != null) {
+        Socket socket = chat.ConnectionManager.activeConnections.get(connectionKey);
+        if (socket != null) {
             try {
-                newSocket.close();
+                socket.close();
+                chat.ConnectionManager.removeConnection(connectionKey);
                 System.out.println("Closed connection to " + connectionKey);
             } catch (IOException e) {
                 System.out.println("Error closing connection: " + e.getMessage());
@@ -424,6 +456,7 @@ class ConnectionHandler implements Runnable {
             if(input != null) input.close();
             if(output != null) output.close();
             if(newSocket != null) newSocket.close();
+            chat.ConnectionManager.removeConnection(peerIP + ":" + peerPort);
         } catch (IOException e) {
             System.out.println("Error closing connection: " + e.getMessage());
             state = ConnectionState.DISCONNECTED;
