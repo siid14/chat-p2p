@@ -576,6 +576,18 @@ class UserInterface implements Runnable {
                         System.out.println("Usage: /connect <destination> <port no>");
                     }
                     break;
+                    case "/terminate":
+                    if (parts.length == 2) {
+                        try {
+                            int connectionID = Integer.parseInt(parts[1]);
+                            terminateConnection(connectionID);
+                        } catch (NumberFormatException e) {
+                            System.out.println("Invalid connection ID. Please provide a valid number.");
+                        }
+                    } else {
+                        System.out.println("Usage: /terminate <connection_id>");
+                    }
+                    break;
                 case "/myport":
                     System.out.println("Server is listening on port: " + myPort);
                     break;
@@ -605,6 +617,42 @@ class UserInterface implements Runnable {
     //gets IP address of computer
     private String getPrivateIP() throws UnknownHostException {
         return InetAddress.getLocalHost().getHostAddress();
+    }
+
+
+    private void terminateConnection(int connectionID) {
+        KeySetView<String, Socket> activeConnections = chat.ConnectionManager.getActiveConnections();
+        if (connectionID <= 0 || connectionID > activeConnections.size()) {
+            System.out.println("Error: Invalid connection ID. Use /list to see available connections.");
+            return;
+        }
+
+        String connectionKey = null;
+        int currentID = 1;
+        for (String key : activeConnections) {
+            if (currentID == connectionID) {
+                connectionKey = key;
+                break;
+            }
+            currentID++;
+        }
+
+        if (connectionKey != null) {
+            Socket socket = chat.ConnectionManager.activeConnections.get(connectionKey);
+            if (socket != null) {
+                try {
+                    socket.close();
+                    chat.ConnectionManager.removeConnection(connectionKey);
+                    System.out.println("Connection " + connectionID + " (" + connectionKey + ") terminated successfully.");
+                } catch (IOException e) {
+                    System.out.println("Error closing connection: " + e.getMessage());
+                }
+            } else {
+                System.out.println("Error: Connection " + connectionID + " not found.");
+            }
+        } else {
+            System.out.println("Error: Connection " + connectionID + " not found.");
+        }
     }
 
 }
