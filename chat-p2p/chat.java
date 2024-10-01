@@ -621,14 +621,20 @@ class UserInterface implements Runnable {
 
 
     private void terminateConnection(int connectionID) {
+         // get the set of active connections
         KeySetView<String, Socket> activeConnections = chat.ConnectionManager.getActiveConnections();
+
+        // check if the provided connection ID is valid
         if (connectionID <= 0 || connectionID > activeConnections.size()) {
             System.out.println("Error: Invalid connection ID. Use /list to see available connections.");
             return;
         }
 
+        // variables to store the connection key and iterate through connections
         String connectionKey = null;
         int currentID = 1;
+
+         // isterate through active connections to find the matching connection key
         for (String key : activeConnections) {
             if (currentID == connectionID) {
                 connectionKey = key;
@@ -637,11 +643,14 @@ class UserInterface implements Runnable {
             currentID++;
         }
 
+        // if a matching connection key was found
         if (connectionKey != null) {
+            // get the socket associated with the connection key
             Socket socket = chat.ConnectionManager.activeConnections.get(connectionKey);
             if (socket != null) {
                 try {
-                    socket.close();
+                    socket.close();  // close the socket
+                    // remove the connection from the ConnectionManager
                     chat.ConnectionManager.removeConnection(connectionKey);
                     System.out.println("Connection " + connectionID + " (" + connectionKey + ") terminated successfully.");
                 } catch (IOException e) {
