@@ -300,7 +300,9 @@ class PeerClient implements Runnable {
             try {
                 String inputLine;
                 while ((inputLine = input.readLine()) != null) {
-                    System.out.println("Received message: " + inputLine + " from " + peerIP);
+                    System.out.println("Message received from " + peerIP);
+                    System.out.println("Sender's Port: " + peerPort);
+                    System.out.println("Message: \"" + inputLine + "\"");
                 }
             } catch (IOException e) {
                 System.out.println("Error reading from newSocket: " + e.getMessage());
@@ -479,8 +481,8 @@ class ConnectionHandler implements Runnable {
             String inputLine;
             while (state == ConnectionState.CONNECTED && (inputLine = input.readLine()) != null){
                 System.out.println("Message received from " + peerIP);
-                    System.out.println("Sender's Port: " + peerPort);
-                    System.out.println("Message: \"" + inputLine + "\"");
+                System.out.println("Sender's Port: " + peerPort);
+                System.out.println("Message: \"" + inputLine + "\"");
             }
         } catch (IOException e) {
             state = ConnectionState.DISCONNECTED;
@@ -622,6 +624,7 @@ class UserInterface implements Runnable {
                     }else{
                         System.out.println("Usage: /send <connectionID> <message>");
                     }
+                    break;
 
                 case "/myport":
                     System.out.println("Server is listening on port: " + myPort);
