@@ -7,6 +7,7 @@ import java.io.PrintWriter;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.List;
+import java.util.Optional;
 import java.util.Scanner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentHashMap.KeySetView;
@@ -568,9 +569,8 @@ class UserInterface implements Runnable {
                     break;
                 case "/myip":
                     try {
-                        System.out.println(getPrivateIP());
-                    } catch (UnknownHostException e) {
-                        // TODO Auto-generated catch block
+                        System.out.println(getWiFiIP());
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
                     break;
@@ -664,10 +664,89 @@ class UserInterface implements Runnable {
         System.out.println("\t/exit: Close all connections and terminate this process.\n");
     }
 
-    //gets IP address of computer
-    private String getPrivateIP() throws UnknownHostException {
-        return InetAddress.getLocalHost().getHostAddress();
+    public String getWiFiIP() {
+        System.out.println("-----------------------------------------------------------");
+        System.out.println("Starting to find WiFi IP address");
+        try {
+             // stream through all network interfaces
+            Optional<String> wifiIP = NetworkInterface.networkInterfaces()
+            // for each interface, print its details
+                .peek(iface -> {
+                    try {
+                        System.out.println("\nExamining Interface: " + iface.getName() +
+                            " (Display name: " + iface.getDisplayName() + ")" +
+                            " Is up: " + iface.isUp() +
+                            " Is loopback: " + iface.isLoopback() +
+                            " Is WiFi: " + isWiFiInterface(iface));
+                    } catch (SocketException e) {
+                        System.out.println("Error checking interface: " + iface.getName() + " : " + e.getMessage());
+                    }
+                })
+                // filter out interfaces that are not WiFi, are loopback, or are not up
+                .filter(iface -> {
+                    try {
+                        return !iface.isLoopback() && iface.isUp() && isWiFiInterface(iface);
+                    } catch (SocketException e) {
+                        System.out.println("Error filtering interface: " + iface.getName() + " : " + e.getMessage());
+                        return false;
+                    }
+                })
+                // get all IP addresses for the remaining interfaces
+                .flatMap(iface -> iface.inetAddresses())
+                // filter for IPv4 addresses that are not loopback
+                .filter(addr -> addr instanceof Inet4Address && !addr.isLoopbackAddress())
+                // convert InetAddress to String representation
+                .map(InetAddress::getHostAddress)
+                // print each potential WiFi IP address found
+                .peek(addr -> System.out.println("Found potential WiFi IP address: " + addr))
+                // take the first IP address found (assumes one WiFi connection)
+                .findFirst();
+    
+            System.out.println("\nFinished searching for WiFi IP address.");
+            System.out.println("-----------------------------------------------------------\n");
+            return wifiIP.orElse("No WiFi IP address found");
+        } catch (SocketException e) {
+            System.out.println("Error getting network interfaces: " + e.getMessage());
+            return "Error: " + e.getMessage();
+        }
     }
+    
+    private boolean isWiFiInterface(NetworkInterface iface) throws SocketException {
+        String name = iface.getName().toLowerCase();
+        String displayName = iface.getDisplayName().toLowerCase();
+        
+        // common WiFi interface names across various operating systems
+        return
+            // generic
+            name.contains("wlan") || name.contains("wifi") || name.contains("wi-fi") ||
+            displayName.contains("wireless") || displayName.contains("wi-fi") || displayName.contains("wifi") ||
+            
+            // windows
+            name.startsWith("wlan") || name.contains("wireless") ||
+            
+            // macOS
+            name.equals("en0") || displayName.contains("airport") ||
+            
+            // linux
+            name.startsWith("wlp") || name.startsWith("wlo") || name.startsWith("wlx") ||
+            
+            // freeBSD
+            name.startsWith("wlan") ||
+            
+            // android
+            name.startsWith("wlan") ||
+            
+            // iOS
+            name.startsWith("en") ||
+            
+            // solaris
+            name.startsWith("wlan") ||
+            
+            // virtual WiFi interfaces
+            name.contains("vwifi");
+    }
+    
+    
 
 
     private void terminateConnection(int connectionID) {
