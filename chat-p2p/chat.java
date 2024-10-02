@@ -699,7 +699,7 @@ class UserInterface implements Runnable {
                 .map(InetAddress::getHostAddress)
                 // print each potential WiFi IP address found
                 .peek(addr -> System.out.println("Found potential WiFi IP address: " + addr))
-                // take the first IP address found (assumes one WiFi connection)
+                // take the first IP address found (assumig it's wifi connection)
                 .findFirst();
     
             System.out.println("\nFinished searching for WiFi IP address.");
