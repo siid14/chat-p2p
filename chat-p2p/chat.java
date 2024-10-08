@@ -12,6 +12,7 @@ import java.util.Scanner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentHashMap.KeySetView;
 import java.util.Arrays;
+import java.util.logging.*;
 
 public class chat {
     // * MAIN CLASS TO INIT AND START P2P CHAT 
@@ -33,50 +34,48 @@ public class chat {
     }
 
         // inner class for ConnectionManager
-        static class ConnectionManager {
-            public static final ConcurrentHashMap<String, Socket> activeConnections = new ConcurrentHashMap<>();
-            public static final int MAX_CONNECTIONS = 3;
+    static class ConnectionManager {
+        public static final String connectionTerminator = "\u001a";
+        public static final ConcurrentHashMap<String, Socket> activeConnections = new ConcurrentHashMap<>();
+        public static final int MAX_CONNECTIONS = 3;
     
             // check if a new connection can be accepted
-            public static boolean canAcceptNewConnection() {
-                return activeConnections.size() < MAX_CONNECTIONS;
-            }
+        public static boolean canAcceptNewConnection() {
+            return activeConnections.size() < MAX_CONNECTIONS;
+        }
     
             // add a connection to the active connections
-            public static void addConnection(String key, Socket socket) {
-                activeConnections.put(key, socket);
-                System.out.println("\nAdded connection: " + key + ". Total connections: " + activeConnections.size());
+        public static void addConnection(String key, Socket socket) {
+            activeConnections.put(key, socket);
+            System.out.println("\nAdded connection: " + key + ". Total connections: " + activeConnections.size());
+        }
+
+        // remove a connection from the active connections
+        public static void removeConnection(String key) {
+            activeConnections.remove(key);
+            System.out.println("\nRemoved connection: " + key + ". Total connections: " + activeConnections.size());
+        }
+
+        // get a view of the active connections
+        public static KeySetView<String, Socket> getActiveConnections() {
+            return activeConnections.keySet();
+        }
+
+        // send message to peer
+        public static void sendMessage(String key, String message) throws IOException {
+            Socket socket = activeConnections.get(key);
+            if (socket != null) {
+                PrintWriter output = new PrintWriter(socket.getOutputStream(), true);
+                output.println(message);
+                output.flush();
+                System.out.println( "Message sent to " + key );
+            } else {
+                throw new IOException("No active connection for key: " + key);
             }
-    
-            // remove a connection from the active connections
-            public static void removeConnection(String key) {
-                activeConnections.remove(key);
-                System.out.println("\nRemoved connection: " + key + ". Total connections: " + activeConnections.size());
-            }
-    
-            // get a view of the active connections
-            public static KeySetView<String, Socket> getActiveConnections() {
-                return activeConnections.keySet();
-            }
-    
-            // send message to peer
-            public static void sendMessage(String key, String message) throws IOException {
-                Socket socket = activeConnections.get(key);
-                if (socket != null) {
-                    PrintWriter output = new PrintWriter(socket.getOutputStream(), true);
-                    output.println(message);
-                    output.flush();
-                    System.out.println( "Message sent to " + key );
-                } else {
-                    throw new IOException("No active connection for key: " + key);
-                }
-            
+        
         }
     }
 }
-
-
-
 
 // package-private enum ConnectionMessage
 enum ConnectionMessage {
@@ -87,6 +86,7 @@ enum ConnectionMessage {
 
 // * PeerServer CLASS TO MANAGE INCOMING CONNECTIONS 
 class PeerServer implements Runnable {
+    private static final Logger logger = Logger.getLogger(PeerServer.class.getName());
     private int port;
     
 
@@ -113,8 +113,14 @@ class PeerServer implements Runnable {
                     clientSocket.close();
                 }
             }
-        } catch(IOException e) {
-            System.out.println("Server exception " + e.getMessage());
+        } catch (BindException be) {
+            logger.severe("Port already in use: " + port);
+            System.err.println("Server failed to start: Port " + port + " is already in use.");
+        } catch (IOException e) {
+            logger.severe("Server exception: " + e.getMessage());
+            System.err.println("Server exception: " + e.getMessage());
+        } finally {
+            System.out.println("Server has stopped listening on port " + port); // Optional: Handle server shutdown logic here
         }
     }
 
@@ -299,16 +305,24 @@ class PeerClient implements Runnable {
         // start a new thread to handle the connection
         new Thread(() -> {
             try {
-                String inputLine;
+                String inputLine = null;
                 while ((inputLine = input.readLine()) != null) {
+                    if (inputLine.equals(chat.ConnectionManager.connectionTerminator)) {
+                        throw new IllegalArgumentException();
+                    }
                     System.out.println("Message received from " + peerIP);
                     System.out.println("Sender's Port: " + peerPort);
                     System.out.println("Message: \"" + inputLine + "\"");
-                }
+                } 
             } catch (IOException e) {
                 System.out.println("Error reading from newSocket: " + e.getMessage());
+            } catch (IllegalArgumentException iae) {
+                chat.ConnectionManager.removeConnection(connectionKey);
+                System.out.println("Disconnected " + peerIP + ":" + peerPort);
+                return;
             }
         }).start();
+    
     }
 
     // * METHODS
@@ -411,7 +425,7 @@ class ConnectionHandler implements Runnable {
     @Override 
     public void run() {
         System.out.println("Starting connection handler for peer: " + peerIP + ":" + peerPort);
-        try{
+        try {
             setupStreams(); // set up input and output streams
             performHandshake(); // perform the connection handshake
             handleMessages(); // handle incoming messages
@@ -426,8 +440,6 @@ class ConnectionHandler implements Runnable {
             System.out.println("Closing connection with peer: " + peerIP + ":" + peerPort);
             closeConnection();
         }
-
-        
     }
 
     // * METHODS
@@ -439,7 +451,7 @@ class ConnectionHandler implements Runnable {
 
     // perform the connection handshake
     private void performHandshake () throws IOException {
-        System.out.println("-----------------ConnectioHandler-Handshake-Process------------------------------------------");
+        System.out.println("-----------------ConnectionHandler-Handshake-Process------------------------------------------");
         System.out.println("Starting handshake process with peer: " + peerIP + ":" + peerPort);
         state = ConnectionState.CONNECTING;
 
@@ -479,8 +491,11 @@ class ConnectionHandler implements Runnable {
     // handle incoming messages after connection is established
     private void handleMessages() {
         try {
-            String inputLine;
+            String inputLine = null; 
             while (state == ConnectionState.CONNECTED && (inputLine = input.readLine()) != null){
+                if (inputLine.equals(chat.ConnectionManager.connectionTerminator)) {
+                    throw new IllegalArgumentException();
+                } 
                 System.out.println("Message received from " + peerIP);
                 System.out.println("Sender's Port: " + peerPort);
                 System.out.println("Message: \"" + inputLine + "\"");
@@ -488,6 +503,8 @@ class ConnectionHandler implements Runnable {
         } catch (IOException e) {
             state = ConnectionState.DISCONNECTED;
             System.err.println("Error reading from peer " + peerIP + ":" + peerPort + " - " + e.getMessage());
+        } catch (IllegalArgumentException iae) {
+            state = ConnectionState.DISCONNECTED;
         }
     }
 
@@ -626,7 +643,7 @@ class UserInterface implements Runnable {
                     }
                     break;
 
-                    case "/terminate":
+                case "/terminate":
                     if (parts.length == 2) {
                         try {
                             int connectionID = Integer.parseInt(parts[1]);
@@ -641,6 +658,15 @@ class UserInterface implements Runnable {
                 case "/myport":
                     System.out.println("Server is listening on port: " + myPort);
                     break;
+                case "/exit":
+                    try {
+                        broadcastExitMessage();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        System.exit(1);
+                    }
+                    System.exit(0);
+                    break;        
                 default:
                     System.out.println("Unknown command. Type /help for a list of commands.");
             }  
@@ -746,13 +772,10 @@ class UserInterface implements Runnable {
             name.contains("vwifi");
     }
     
-    
-
-
     private void terminateConnection(int connectionID) {
          // get the set of active connections
         KeySetView<String, Socket> activeConnections = chat.ConnectionManager.getActiveConnections();
-
+        
         // check if the provided connection ID is valid
         if (connectionID <= 0 || connectionID > activeConnections.size()) {
             System.out.println("Error: Invalid connection ID. Use /list to see available connections.");
@@ -763,13 +786,18 @@ class UserInterface implements Runnable {
         String connectionKey = null;
         int currentID = 1;
 
-         // isterate through active connections to find the matching connection key
-        for (String key : activeConnections) {
-            if (currentID == connectionID) {
-                connectionKey = key;
-                break;
+         // iterate through active connections to find the matching connection key
+        try {
+            for (String key : activeConnections) {
+                if (currentID == connectionID) {
+                    connectionKey = key;
+                    break;
+                }
+                currentID++;
             }
-            currentID++;
+        } catch (Exception e) {
+            System.out.println("Error while iterating over connections: " + e.getMessage());
+            return;
         }
 
         // if a matching connection key was found
@@ -790,6 +818,14 @@ class UserInterface implements Runnable {
             }
         } else {
             System.out.println("Error: Connection " + connectionID + " not found.");
+        }
+    }
+
+    private void broadcastExitMessage() throws IOException {
+        KeySetView<String, Socket> activeConnections = chat.ConnectionManager.getActiveConnections();
+    
+        for (String connectionKey : activeConnections) {
+            chat.ConnectionManager.sendMessage(connectionKey, chat.ConnectionManager.connectionTerminator);
         }
     }
 
