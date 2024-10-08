@@ -806,6 +806,7 @@ class UserInterface implements Runnable {
             Socket socket = chat.ConnectionManager.activeConnections.get(connectionKey);
             if (socket != null) {
                 try {
+                    chat.ConnectionManager.sendMessage(connectionKey, chat.ConnectionManager.connectionTerminator);
                     socket.close();  // close the socket
                     // remove the connection from the ConnectionManager
                     chat.ConnectionManager.removeConnection(connectionKey);
