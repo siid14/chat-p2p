@@ -315,7 +315,8 @@ class PeerClient implements Runnable {
                     System.out.println("Message: \"" + inputLine + "\"");
                 } 
             } catch (IOException e) {
-                System.out.println("Error reading from newSocket: " + e.getMessage());
+                // ! H
+                // System.out.println("Error reading from newSocket: " + e.getMessage());
             } catch (IllegalArgumentException iae) {
                 chat.ConnectionManager.removeConnection(connectionKey);
                 System.out.println("Disconnected " + peerIP + ":" + peerPort);
