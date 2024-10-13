@@ -9,7 +9,9 @@ Run: make run
 Run with arguments: make run arg1
 Clean: make clean
 
-Example: make run 4545 -- to run a peer on port 4545
+Example: 
+cd in chat-p2p
+make run 4545 -- to run a peer on port 4545
 Then you can apply the following commands :
 
 - help: Display information about available user interface options or command manual.
