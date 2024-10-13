@@ -13,3 +13,5 @@ Clean: make clean
 
 Java Development Kit (JDK)
 javac and java in system PATH
+
+By Sidney Thomas, Ashley Manese, Darrin Du
