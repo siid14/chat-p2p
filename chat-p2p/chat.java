@@ -25,7 +25,9 @@ public class chat {
 
         int port = Integer.parseInt(args[0]);  // convert arg to int (in case it's string)
 
+        // instantiates a peer sever to manage connections from other peers
         PeerServer peerServer = new PeerServer(port);
+        // instantiates a user interface to handle commands
         UserInterface ui = new UserInterface(port);
 
         // start PeerServer and UserInterface in separate threads
@@ -33,7 +35,7 @@ public class chat {
         new Thread(ui).start();
     }
 
-        // inner class for ConnectionManager
+        // inner utility function to manage active connections
     static class ConnectionManager {
         public static final String connectionTerminator = "\u001a";
         public static final ConcurrentHashMap<String, Socket> activeConnections = new ConcurrentHashMap<>();
@@ -99,14 +101,18 @@ class PeerServer implements Runnable {
         // create a ServerSocket to listen for incoming connections
         try (ServerSocket serverSocket = new ServerSocket(port)){
             System.out.println("Listening on port " + port);
+            // keep server running to accept incoming connections
             while(true){
-                // accept incoming connections
+    
                 Socket clientSocket = serverSocket.accept();
                 String connectionKey = clientSocket.getInetAddress().getHostAddress() + ":" + clientSocket.getPort();
 
+                // checks to see if max number of connections have been reached
                if (chat.ConnectionManager.canAcceptNewConnection()) {
                     System.out.println("New connection from " + connectionKey);
+                    // add connection to ConnectionManager
                     chat.ConnectionManager.addConnection(connectionKey, clientSocket);
+                    //start a new thread for the client, uses ConnectionHandler to manage communications with client independently 
                     new Thread(new ConnectionHandler(clientSocket)).start();
                 } else {
                     System.out.println("Maximum connections reached. Rejecting connection from " + connectionKey);
@@ -417,12 +423,14 @@ class ConnectionHandler implements Runnable {
 
     ConnectionState state = ConnectionState.DISCONNECTED;
 
+    // initializes the peerIP and peerPort with given Socket
     public ConnectionHandler(Socket newSocket){
         this.newSocket = newSocket;
         this.peerIP = newSocket.getInetAddress().getHostAddress();
         this.peerPort = newSocket.getPort();
     }
 
+    //executes when thread starts
     @Override 
     public void run() {
         System.out.println("Starting connection handler for peer: " + peerIP + ":" + peerPort);
@@ -445,7 +453,7 @@ class ConnectionHandler implements Runnable {
 
     // * METHODS
     private void setupStreams() throws IOException {
-         // read and write to the newSocket
+         // set up streams to read and write to the newSocket connection
          input = new BufferedReader(new InputStreamReader(newSocket.getInputStream())); 
          output = new PrintWriter(newSocket.getOutputStream(), true);
     }
@@ -465,6 +473,7 @@ class ConnectionHandler implements Runnable {
         ConnectionMessage response = receiveConnectionMessage();
         System.out.println("Received initial message from peer: " + response);
         
+        // waits for CONNECT_REQUEST from the peer
         if(response == ConnectionMessage.CONNECT_REQUEST){
             System.out.println("Received CONNECT_REQUEST from peer: " + peerIP + ":" + peerPort);
             sendConnectionMessage(ConnectionMessage.CONNECT_ACK);
@@ -558,7 +567,7 @@ class ConnectionHandler implements Runnable {
     }
 }
 
-//* UserInterface CLASS TO PROCESS USER COMMANDS AND DISPLAY INFORMATIONS
+//* UserInterface CLASS TO PROCESS USER COMMANDS AND DISPLAY INFORMATION USING COMMAND LINE INTERFACE
 class UserInterface implements Runnable {
     private Scanner scanner;
     private int myPort;
@@ -674,7 +683,9 @@ class UserInterface implements Runnable {
         }
     }
 
+
     private void connectToPeer(String peerIP, int peerPort) {
+        //creates a new PeerClient instance and starts a separate thread to initiate a connection  with a remote peer
         PeerClient client = new PeerClient(peerIP, peerPort, myPort);
         new Thread(client).start();
     }
@@ -692,6 +703,8 @@ class UserInterface implements Runnable {
     }
 
     public String getWiFiIP() {
+        //scan through all network interfaces to find the active Wifi IP address 
+        //filters out loopback and non-Wifi interfaces
         System.out.println("-----------------------------------------------------------");
         System.out.println("Starting to find WiFi IP address");
         try {
@@ -774,6 +787,7 @@ class UserInterface implements Runnable {
     }
     
     private void terminateConnection(int connectionID) {
+        //validate connectionID and terminate corresponding connection by sending a termination message and removes connection from ConnectionManager
          // get the set of active connections
         KeySetView<String, Socket> activeConnections = chat.ConnectionManager.getActiveConnections();
         
@@ -824,6 +838,7 @@ class UserInterface implements Runnable {
     }
 
     private void broadcastExitMessage() throws IOException {
+        //sends a termination message to all active connections before exiting the program
         KeySetView<String, Socket> activeConnections = chat.ConnectionManager.getActiveConnections();
     
         for (String connectionKey : activeConnections) {
